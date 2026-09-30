@@ -1,0 +1,4 @@
+import {sqliteTable,text,integer,index} from 'drizzle-orm/sqlite-core';
+export const sessions=sqliteTable('trade_sessions',{id:text('id').primaryKey(),owner:text('owner').notNull(),cipher:text('cipher').notNull(),expires:integer('expires').notNull(),trading:integer('trading').notNull()});
+export const sharkSessions=sqliteTable('shark_sessions',{id:text('id').primaryKey(),owner:text('owner').notNull(),cipher:text('cipher').notNull(),expires:integer('expires').notNull(),trading:integer('trading').notNull()});
+export const intents=sqliteTable('trade_intents',{id:text('id').primaryKey(),owner:text('owner').notNull(),session:text('session').notNull(),symbol:text('symbol').notNull(),payload:text('payload').notNull(),status:text('status').notNull(),expires:integer('expires').notNull(),result:text('result')},t=>[index('intents_owner_symbol_status').on(t.owner,t.symbol,t.status)]);
