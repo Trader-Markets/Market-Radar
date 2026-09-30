@@ -1,0 +1,16 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const ctx={window:{}};vm.runInNewContext(fs.readFileSync('dist/signals.js','utf8'),ctx);const S=ctx.window.StrategySignals;
+const day=86400000,at=Date.UTC(2026,8,30,8),bar=(time)=>({time,open:100,high:101,low:99,close:100,volume:100});
+let d=Array.from({length:800},(_,i)=>bar(Date.UTC(2026,8,30)-(800-i)*day));let h=Array.from({length:75},(_,i)=>bar(at-(74-i)*3600000));let f=Array.from({length:330},(_,i)=>bar(at-(329-i)*14400000));
+h.at(-1).close=101.2;h.at(-1).high=101.25;h.at(-1).low=100.8;h.at(-1).volume=250;f.at(-1).close=101.1;f.at(-1).high=101.2;f.at(-1).volume=160;
+let x=S.evaluate(h,f,d).breakout;assert(x.match);assert(x.confirmed);assert.equal(x.levels.length,5);assert.equal(x.high,101);let p=S.plan(h,f,'breakout',d);assert(p?.confirmed);assert(p.stop<p.entry&&p.target>p.entry);
+let lowH=h.map(c=>({...c}));lowH.at(-1).volume=199;assert(!S.evaluate(lowH,f,d).breakout.match,'low 1H volume rejected');let lowF=f.map(c=>({...c}));lowF.at(-1).volume=149;assert(!S.evaluate(h,lowF,d).breakout.match,'low 4H volume rejected');
+assert(!S.evaluate(h,f,[]).breakout.match,'daily outage must not claim MTF');assert(!S.evaluate(h,f,d.slice(-60)).breakout.match,'short monthly history rejected');
+let forming=h.map(c=>({...c}));forming.at(-1).close=100.5;assert(S.evaluate(forming,f,d).breakout.match);assert(!S.evaluate(forming,f,d).breakout.confirmed);assert(!S.plan(forming,f,'breakout',d).confirmed);
+let distant=h.map(c=>({...c}));distant.at(-1).close=103;assert(!S.evaluate(distant,f,d).breakout.match,'extended entry rejected');
+let future=[...d,{...bar(at+day),high:10000}];assert.equal(S.evaluate(h,f,future).breakout.high,101,'future daily bars excluded');
+let historical=d.map(c=>({...c}));historical[3].high=150;assert(!S.evaluate(h,f,historical).breakout.match,'old history high must not be discarded');
+let weeks=S.calendarBars(d,'week',at);assert(weeks.length>100);let gap=d.filter((_,i)=>i!==400);assert(S.calendarBars(gap,'week',at).length<weeks.length,'gapped periods excluded');
+// Execute the drawing function with a chart adapter and inspect actual levels.
+const source=fs.readFileSync('dist/app.js','utf8');const draw=source.slice(source.indexOf('function drawStrategyLevels('),source.indexOf('function renderChart('));const lines=[],volumes=[];const adapter={chartData:{h,f,d,mode:'breakout'},StrategySignals:S,tvCandles:{createPriceLine(l){lines.push(l)}},LightweightCharts:{HistogramSeries:{}},tvChart:{addSeries(){return {priceScale(){return {applyOptions(){}}},setData(v){volumes.push(...v)}}}}};vm.runInNewContext(draw,adapter);adapter.drawStrategyLevels(f,'4h');assert.equal(lines.length,6);assert(lines.some(l=>l.title.includes('ATH unverified')&&l.price===101));assert.equal(volumes.length,f.length);lines.length=0;adapter.chartData.mode='ema';adapter.drawStrategyLevels(f,'4h');assert.equal(lines.length,2);assert(lines.some(l=>l.title==='Consolidation low'));lines.length=0;adapter.chartData.mode='scalp';adapter.drawStrategyLevels(h,'1h');assert.equal(lines.length,2);assert.equal(lines[0].price,101);
+console.log('PASS: five-timeframe alignment, forming/confirmed, volume thresholds, insufficient/gapped history, prior historical highs, no future leakage, strategy drawings and all-contract scan defaults');

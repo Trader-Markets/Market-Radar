@@ -1,0 +1,10 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const app=fs.readFileSync('dist/app.js','utf8');
+const body=app.slice(app.indexOf('function renderTradePositions(){'),app.indexOf("$('tradePositions').addEventListener",app.indexOf('function renderTradePositions(){')));
+const els={tradePositionsRows:{innerHTML:''},tradePositionsStatus:{textContent:''}};
+const account={asOf:Date.now(),positions:[{product_symbol:'KITEUSD',product_id:4,size:100,entry_price:'.14513',mark_price:'.14997',liquidation_price:'.13501',margin:'.73',unrealized_pnl:'.48'}],orders:[]};
+const ctx=vm.createContext({$:id=>els[id],exchange:()=> 'delta',deltaAccount:account,sharkAccount:null,deltaConnected:true,sharkConnected:false,symbolOf:p=>p.product_symbol,sharkCoin:p=>p.contractPair,esc:x=>String(x),money:(n)=>n==null?'—':'$'+n,table:(headers,rows)=>rows.join(''),Date,Math,Number,Array});
+vm.runInContext(body+'\nthis.render=renderTradePositions;',ctx);ctx.render();
+assert.match(els.tradePositionsRows.innerHTML,/KITEUSD/);assert.match(els.tradePositionsRows.innerHTML,/No stop shown/);assert.match(els.tradePositionsRows.innerHTML,/\$\.48/);assert.match(els.tradePositionsStatus.textContent,/1 open/);
+ctx.deltaConnected=false;ctx.render();assert.match(els.tradePositionsStatus.textContent,/Connect your account/);
+ctx.sharkConnected=true;ctx.sharkAccount={asOf:Date.now(),positions:[{contractPair:'BTCINR',positionStatus:'OPEN',quantity:'2',positionType:'LONG',entryPrice:'100',markPrice:'105',margin:'50',unrealisedPnl:'10',quoteAsset:'INR'}],orders:[]};ctx.exchange=()=> 'shark';ctx.render();assert.match(els.tradePositionsRows.innerHTML,/BTCINR/);assert.match(els.tradePositionsRows.innerHTML,/Long|LONG/);console.log('PASS: Delta and Shark positions render below chart and disconnect clears Delta');

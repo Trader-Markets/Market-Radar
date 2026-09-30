@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const app=fs.readFileSync('dist/app.js','utf8');
+const code=app.slice(app.indexOf('function ticketPlan(){'),app.indexOf('function refreshTicket(){'));
+let values={ticketEntry:'100',ticketStop:'99',ticketTarget:'102',ticketSide:'buy',ticketAmount:'100',ticketLeverage:'2'};
+let rules={choices:[1,2,3],step:.01,minUnits:.01,maxUnits:100,minNotional:1,maxNotional:10000,fee:.05};
+let ctx=vm.createContext({$:id=>({value:values[id]}),ticketDemo:false,listings:[{symbol:'TESTUSD',base:'TEST',quote:'USD'}],ticketRules:rules,ticketFunds:()=>({balance:1000,currency:'USD',marginAsset:'USD'}),StrategySignals:{size:()=>null,liquidation:()=>({buffer:.2})},Number,Math});
+vm.runInContext(code+'\nthis.plan=ticketPlan;',ctx);values.ticketCoin='TESTUSD';
+let p=ctx.plan();assert(!p.error,p.error);assert.equal(p.v.margin,50);assert.equal(p.v.loss,1.2);assert.equal(p.quantity,1);
+values.ticketAmount='1000';assert.equal(ctx.plan().v.loss,12);
+values.ticketAmount='100';values.ticketLeverage='200';assert.match(ctx.plan().error,/valid leverage/);
+values.ticketLeverage='2';values.ticketStop='101';assert.match(ctx.plan().error,/stop goes below/);
+console.log('PASS: broker value, margin, risk calculation, leverage and stop validation');

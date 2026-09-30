@@ -1,0 +1,12 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const app=fs.readFileSync('dist/app.js','utf8'),ctx={window:{},seenAlerts:new Set(),marketNewsWatch:false,newsFlags:new Set(),money:(n,q)=>q+' '+Number(n).toFixed(2)};
+vm.runInNewContext(fs.readFileSync('dist/signals.js','utf8'),ctx);ctx.StrategySignals=ctx.window.StrategySignals;
+let profile={balance:10000,risk:.5,cost:.2},messages=[],rules={max:20,step:.01,minUnits:.01,maxUnits:10000,minNotional:1,maxNotional:100000,exchange:'delta',mm:.005};
+ctx.readAlertProfile=()=>profile;ctx.loadContract=async()=>rules;ctx.alertUser=(key,title,message,meta)=>{ctx.seenAlerts.add(key);messages.push({key,title,message,meta})};
+vm.runInNewContext(app.slice(app.indexOf('async function alertSetup('),app.indexOf('\nfunction announceSetup(')),ctx);
+const t={symbol:'BTCUSD',exchange:'delta',quote:'USD',base:'BTC',scalp:{time:1,label:'Upward breakout'},plans:{scalp:{entry:100,stop:98,target:104,risk:2,side:1,confirmed:true}}};
+await ctx.alertSetup(t,'scalp');assert.match(messages[0].message,/Planned loss USD 49\.98 within 0.5% risk/);assert.match(messages[0].message,/Entry USD 100.00, stop USD 98.00, target USD 104.00/);assert.equal(messages[0].meta.symbol,'BTCUSD');await ctx.alertSetup(t,'scalp');assert.equal(messages.length,1,'duplicate alert suppressed');
+t.scalp.time++;t.plans.scalp.confirmed=false;await ctx.alertSetup(t,'scalp');assert.match(messages.at(-1).message,/Forming setup/);
+t.scalp.time++;rules=null;await ctx.alertSetup(t,'scalp');assert.match(messages.at(-1).message,/Size unavailable/);assert.doesNotMatch(messages.at(-1).message,/Planned loss/);
+t.scalp.time++;profile.balance=0;await ctx.alertSetup(t,'scalp');assert.match(messages.at(-1).message,/Set your balance/);
+console.log('PASS: setup alerts distinguish forming/confirmed, calculate bounded money risk, suppress duplicates and omit unverified sizing');
