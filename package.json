@@ -1,1 +1,15 @@
-{"name":"market-radar","private":true,"type":"module","scripts":{"build":"python build-worker.py","db:generate":"drizzle-kit generate"},"devDependencies":{"drizzle-kit":"0.31.4","drizzle-orm":"0.44.5"}}
+{
+  "name": "market-radar",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python build-worker.py",
+    "db:generate": "drizzle-kit generate",
+    "test": "node --test tests/*.mjs"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.4",
+    "drizzle-orm": "0.44.5",
+    "linkedom": "0.18.12"
+  }
+}
