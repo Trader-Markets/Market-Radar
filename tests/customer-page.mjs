@@ -1,0 +1,43 @@
+import {parseHTML} from 'linkedom';
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const {window,document}=parseHTML(fs.readFileSync('dist/index.html','utf8'));
+// A DOM integration check with network and timers isolated; it submits no orders.
+Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return this._value??this.querySelector('option[selected]')?.value??this.querySelector('option')?.value??''},set(v){this._value=String(v)}});
+Object.defineProperty(window.HTMLSelectElement.prototype,'options',{get(){return [...this.querySelectorAll('option')]}});
+for(let el of document.querySelectorAll('input'))if(!el.value)el.value=el.getAttribute('value')??'';
+const context=vm.createContext({window,document,console,Date,Math,Number,String,Intl,JSON,Map,Set,Promise,Array,AbortSignal,URL,URLSearchParams,localStorage:{getItem:()=>null,setItem:()=>{}},setInterval:()=>0,clearInterval:()=>{},setTimeout:()=>0,clearTimeout:()=>{},queueMicrotask:()=>{},fetch:async()=>{throw Error('Network isolated in DOM test')},location:{hostname:'localhost',origin:'http://localhost'},navigator:{},ResizeObserver:class{observe(){}},requestAnimationFrame:()=>0});
+for(let f of ['customer-flow','signals']){vm.runInContext(fs.readFileSync('dist/'+f+'.js','utf8'),context);context[f==='customer-flow'?'CustomerFlow':'StrategySignals']=window[f==='customer-flow'?'CustomerFlow':'StrategySignals'];}
+vm.runInContext(fs.readFileSync('dist/app.js','utf8'),context);
+assert.ok(document.getElementById('simpleTrade').closest('.trade-workspace'));
+assert.ok(document.getElementById('deltaSettings').closest('#settingsView'));
+assert.ok(document.getElementById('sharkSettings').closest('#settingsView'));
+assert.equal(document.getElementById('exchangeLevels'),null);
+assert.ok(document.getElementById('priceChart').closest('.chart-panel'));
+assert.ok(document.querySelector('.tv-reference #tvAdvanced'));
+assert.equal(document.querySelectorAll('.chart-picking button').length,3);
+assert.equal(document.getElementById('chartView').classList.contains('hide'),false);
+assert.equal(document.getElementById('ticketAction').disabled,true);
+assert.ok(!document.getElementById('apiView').textContent.includes('null'));
+vm.runInContext("tab('settings')",context);
+assert.equal(document.getElementById('settingsView').classList.contains('hide'),false);
+vm.runInContext("tab('chart')",context);
+vm.runInContext(`
+chartData={t:{exchange:'delta',symbol:'BTCUSD',quote:'USD'},h:[],f:[],d:[]};
+customerDraft=CustomerFlow.edit(CustomerFlow.create('delta','BTCUSD'),{entry:100,stop:95,target:110,side:1});
+customerFillTicket();
+let drawn=[];
+tvCandles={createPriceLine:o=>{drawn.push(o);return o},removePriceLine:o=>{drawn=drawn.filter(x=>x!==o)},coordinateToPrice:y=>y};
+customerPaintDraft();
+if(drawn.length!==3)throw Error('Draft must draw entry, stop and target');
+customerPickField='ticketTarget';
+let clickHandler;
+tvChart={subscribeClick:f=>clickHandler=f};customerBindChart();clickHandler({point:{y:120}});
+if(customerDraft.target!==120&&+customerDraft.target!==120)throw Error('Chart click did not update target');
+if(drawn.length!==3||!drawn.some(x=>x.price===120))throw Error('Chart drawings did not update');
+let acceptedContext={exchange:'delta',symbol:'BTCUSD',action:'open',revision:customerDraft.revision};
+customerOrderAccepted(acceptedContext);
+if(drawn.length!==0||$('ticketEntry').value!=='')throw Error('Accepted order did not clear draft');
+chartData=null;customerUpdateStatus();
+`,context);
+await new Promise(resolve=>setImmediate(resolve));
+console.log('PASS customer page: complete startup, one chart/ticket, settings relocation, chart picking, navigation and empty-plan order guard');
