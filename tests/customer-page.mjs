@@ -22,7 +22,7 @@ vm.runInContext("tab('settings')",context);
 assert.equal(document.getElementById('settingsView').classList.contains('hide'),false);
 vm.runInContext("tab('chart')",context);
 vm.runInContext(`
-chartData={t:{exchange:'delta',symbol:'BTCUSD',quote:'USD'},h:[],f:[],d:[]};
+chartData={t:{exchange:'delta',symbol:'BTCUSD',quote:'USD'},mode:'scalp',rules:{choices:[1,2,5]},allH:[{close:100}],h:[],f:[],d:[]};
 customerDraft=CustomerFlow.edit(CustomerFlow.create('delta','BTCUSD'),{entry:100,stop:95,target:110,side:1});
 customerFillTicket();
 let drawn=[];
@@ -37,6 +37,12 @@ if(drawn.length!==3||!drawn.some(x=>x.price===120))throw Error('Chart drawings d
 let acceptedContext={exchange:'delta',symbol:'BTCUSD',action:'open',revision:customerDraft.revision};
 customerOrderAccepted(acceptedContext);
 if(drawn.length!==0||$('ticketEntry').value!=='')throw Error('Accepted order did not clear draft');
+customerChartReady();
+if(!customerDraft.cleared)throw Error('Reload resurrected an accepted plan');
+$('customerPractice').checked=true;$('customerPractice').dispatchEvent(new window.Event('change'));
+if(!ticketDemo||$('ticketLeverage').value!=='2'||ticketFunds().currency!=='USD')throw Error('Practice mode must use selected coin quote and 2x leverage');
+$('customerPractice').checked=false;$('customerPractice').dispatchEvent(new window.Event('change'));
+if(ticketDemo)throw Error('Practice mode could not be disabled');
 chartData=null;customerUpdateStatus();
 `,context);
 await new Promise(resolve=>setImmediate(resolve));
