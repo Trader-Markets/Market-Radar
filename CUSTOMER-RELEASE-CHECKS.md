@@ -1,3 +1,7 @@
+# Current release: journeys.13 — 19 October 2026
+
+See JOURNEY-FIX-RESULTS.md: four reproduced defects repaired, targeted checks 0/4 → 4/4; full suite 48/48 runner tests across 45 files. These are automated results, not a live customer-journey guarantee.
+
 # Current release: audit.12 — 19 October 2026
 
 44 automated test files pass. See QA-AUDIT-2026-10-19.md for current scope, repairs and live-verification limits. The entries below retain the earlier release history.
