@@ -57,3 +57,13 @@ The sampled hosted logs showed protected-route 403 access rejections and cancele
 ## Install this candidate
 
 Close the old Market Radar terminal window, extract the new ZIP, and open Start Market Radar.cmd. Existing saved local accounts and history live outside the extracted program folder and are retained. Use the old-server warning to close a conflicting older process before retrying.
+
+## Follow-up repairs — release.2
+
+- Index chart opens for the default selection; choosing a directory item from another region synchronizes the region and symbol controls.
+- Reloading market quotes retains full-chart fallback links and source explanation.
+- Changing an Indian instrument clears entry, stop, target and old alert titles, and synchronizes the preset.
+- Missing chart library or empty candle history shows an explicit explanation instead of a blank panel.
+- Null or malformed API bodies show a retry message rather than a JavaScript property error.
+
+Validation: full 37-file automated suite, including additional DOM regressions. Windows rendering and connected private broker paths remain unverified here; prior acceptance limits still apply.

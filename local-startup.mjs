@@ -1,5 +1,5 @@
 import net from 'node:net';
-export const LOCAL_BUILD='2026.10.18.release.1';
+export const LOCAL_BUILD='2026.10.18.release.2';
 export async function inspectLocalServer(port,{probe,read}={}){
  const occupied=probe?await probe(port):await new Promise(resolve=>{const socket=net.createConnection({port,host:'127.0.0.1'});let done=false;const finish=value=>{if(done)return;done=true;socket.destroy();resolve(value)};socket.setTimeout(1500,()=>finish(true));socket.once('connect',()=>finish(true));socket.once('error',e=>finish(e.code!=='ECONNREFUSED'))});
  if(!occupied)return {state:'free'};
