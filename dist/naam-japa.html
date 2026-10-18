@@ -162,6 +162,20 @@ html body .japa-intro{text-align:center;margin-bottom:30px}
 html body .japa-intro small{font-size:12px;letter-spacing:1.5px;color:#624082;font-weight:700}
 html body .japa-intro h1{margin:12px 0;color:#39264f}
 html body .japa-intro p{color:var(--radar-muted)}
+html body .japa-favourites{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 20px}
+html body .japa-favourites button{background:#fbf5ed;border-color:#e0cda9;color:#725522;line-height:1.5}
+html body .japa-custom{display:grid;gap:8px;margin:18px 0;color:#536278;font-size:14px;font-weight:650}
+html body .japa-custom :where(textarea,input){width:100%}
+html body .japa-custom textarea{resize:vertical;min-height:120px}
+html body .japa-source-info{padding:14px 16px;margin:18px 0;border:1px solid #e4d9ed;border-radius:10px;background:#faf7fc;font-size:13px;color:#5b4c6d;line-height:1.7}
+html body .japa-source-info p{margin:6px 0}
+html body .japa-source-info a{color:#624082;font-weight:650}
+html body .japa-saint-panel{margin:22px 0}
+html body .japa-saint-panel h2{color:#39264f}
+html body .japa-saint-panel p{margin:14px 0;line-height:1.7}
+html body .japa-saint-panel .japa-fields input{width:100%}
+html body .japa-saint-panel a{color:#624082}
+html body #japaVideoHost iframe{display:block;width:100%;min-height:220px;aspect-ratio:16/9;border:1px solid var(--radar-line);border-radius:12px;margin:20px 0;background:#111}
 html body .japa-card{padding:28px;border:1px solid #ddd1e8;background:#fff;border-radius:20px;box-shadow:0 10px 36px #39264f08}
 html body .japa-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 html body .japa-fields label,html body .japa-file{display:grid;gap:8px;font-size:14px;color:#536278;font-weight:650}
@@ -211,6 +225,7 @@ html body .japa-help{font-size:14px;line-height:1.8;color:#536278;margin:24px 4p
  html body .japa-header{padding:14px 16px;flex-wrap:wrap}
  html body .japa-card{padding:18px}
  html body .japa-fields{grid-template-columns:minmax(0,1fr);gap:14px}
+ html body .japa-favourites{grid-template-columns:minmax(0,1fr)}
  html body .japa-verse{margin:22px 0;padding:22px 16px}
  html body{font-size:15px}
  html body .shell,html body :where(#stocksWorkspace,#indiaWorkspace,#learningWorkspace){padding:18px 12px 40px!important}
@@ -267,15 +282,19 @@ html body .asset-nav strong,html body .asset-nav .learning-nav-link:last-child{g
 <body class="japa-page">
 <header class="japa-header"><a href="/">← Market Radar</a><span>Your quiet space</span></header>
 <main id="japaWorkspace">
- <div class="japa-intro"><small>RADHA KRISHNA · NAAM JAPA</small><h1>A moment of remembrance</h1><p>Record your chant once, then listen to your own voice on continuous repeat.</p></div>
+ <div class="japa-intro"><small>SHRIMATI RADHA RANI · SHRI KRISHNA</small><h1>A moment of remembrance</h1><p>Record your chant once, then listen to your own voice on continuous repeat.</p></div>
+ <div class="japa-favourites" aria-label="Your devotional favourites"><button type="button" class="mode" data-japa-favourite="radhaNaam">Shrimati Radha Rani</button><button type="button" class="mode" data-japa-favourite="govind">Shri Govinddevji Maharaj</button><button type="button" class="mode" data-japa-favourite="vallabh">Shri Radhavallabh Lal Ji</button></div>
  <section class="japa-card" aria-label="Mantra player">
-  <div class="japa-fields"><label>Listen to<select id="japaSource"><option value="record">Record my voice</option><option value="voice">Built-in spoken mantra</option><option value="file">My audio recording</option></select></label><label id="japaMantraLabel"><span id="japaMantraTitle">Mantra to read (optional)</span><select id="japaMantra"><option value="radha">Radha Krishna naam japa</option><option value="hare">Hare Krishna maha mantra</option></select></label></div>
+  <div class="japa-fields"><label>Listen to<select id="japaSource"><option value="record">Record my voice</option><option value="voice">Built-in spoken mantra</option><option value="file">My audio recording / saint audio file</option><option value="saint">Saint / temple recording · YouTube</option></select></label><label id="japaMantraLabel"><span id="japaMantraTitle">Mantra to read (optional)</span><select id="japaMantra"><option value="radha">Radha Krishna naam japa</option><option value="hare">Hare Krishna maha mantra</option></select></label></div>
+  <label id="japaCustomPanel" class="japa-custom" hidden>Your naam japa or mantra<textarea id="japaCustomText" maxlength="500" rows="3" placeholder="Write the words you wish to chant or repeat…"></textarea></label>
   <div id="japaVerse" class="japa-verse"><p id="japaHindi" lang="hi"></p><p id="japaRoman"></p></div>
+  <div id="japaSourceInfo" class="japa-source-info"><strong id="japaSourceKind"></strong><p id="japaSourceNote"></p><a id="japaSourceLink" target="_blank" rel="noopener noreferrer" hidden>Read source ↗</a></div>
+  <section id="japaSaintPanel" class="japa-saint-panel" hidden><h2>Saint &amp; temple recordings</h2><p>Listen to an existing recording in the original speaker’s voice. For saints of earlier times, choose an available recording or a recitation from their tradition. The app does not recreate a saint’s voice.</p><div class="japa-fields"><label>Saved recordings<select id="japaSavedRecording"></select></label><label>Speaker / recording name<input id="japaRecordingTitle" maxlength="100" placeholder="Name as credited by the source"></label></div><label class="japa-custom">YouTube recording link<input id="japaVideoUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"></label><div class="japa-actions"><button id="japaLoadVideo" class="refresh" type="button">Load recording</button><button id="japaSaveVideo" class="mode" type="button">Save link</button><button id="japaClearVideos" class="mode" type="button">Clear saved links</button></div><div id="japaVideoHost"></div><a id="japaOriginalVideo" target="_blank" rel="noopener noreferrer" hidden>Open original recording on YouTube ↗</a><p class="small-note">Use the video’s own play, pause and volume controls. Repeat is enabled for a single recording. Some recordings restrict embedding; use the original link if unavailable. Live broadcasts do not repeat like finished recordings. Loading a video connects to YouTube; speaker attribution belongs to its publisher.</p><details><summary>Your temple sources</summary><p><a href="https://mandirshrigovinddevjijaipur.org/" target="_blank" rel="noopener noreferrer">Shri Govinddevji Maharaj, Jaipur ↗</a></p><p><a href="https://www.radhavallabhmandir.com/" target="_blank" rel="noopener noreferrer">Shri Radhavallabh Mandir, Vrindavan ↗</a></p><p class="small-note">These open the temples’ websites. Choose a recording from a source you trust, then paste its YouTube link above.</p></details></section>
   <section id="japaRecordPanel" class="japa-record-panel" aria-label="Record your naam japa"><h2>Your voice, your naam japa</h2><p>Press Record, allow microphone access, and chant the maha mantra or any naam japa. Press Stop recording, then Play continuously.</p><div class="japa-actions"><button id="japaRecord" type="button" class="refresh">● Record my voice</button><button id="japaRecordStop" type="button" class="mode" disabled>Stop recording</button></div><p id="japaRecordingStatus" class="small-note">Microphone off. Record up to 5 minutes.</p><a id="japaDownload" class="japa-download" hidden>Download my recording ↓</a><p class="small-note">Your actual chant repeats exactly as recorded. Audio stays in this browser and is not uploaded. Download it to keep a copy before closing or reloading this tab.</p></section>
   <div id="japaFilePanel" hidden><label class="japa-file">Choose an audio file<input id="japaFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac,.webm"></label><p id="japaFileName">No recording selected.</p><p class="small-note">Your file is played locally and is not uploaded by Market Radar. Select it again after reloading this page. Maximum 100 MB.</p></div>
   <p id="japaStatus" class="japa-status" role="status" aria-live="polite">Ready. Choose a mantra and press Play.</p>
-  <div class="japa-actions"><button id="japaPlay" class="refresh" type="button">▶ Play continuously</button><button id="japaPause" class="mode" type="button" disabled>Pause</button><button id="japaStop" class="mode" type="button" disabled>Stop</button></div>
-  <label class="japa-volume">Volume<input id="japaVolume" type="range" min="0" max="100" value="65" step="1"><output id="japaVolumeValue" for="japaVolume">65%</output></label>
+  <div id="japaPlaybackControls"><div class="japa-actions"><button id="japaPlay" class="refresh" type="button">▶ Play continuously</button><button id="japaPause" class="mode" type="button" disabled>Pause</button><button id="japaStop" class="mode" type="button" disabled>Stop</button></div>
+  <label class="japa-volume">Volume<input id="japaVolume" type="range" min="0" max="100" value="65" step="1"><output id="japaVolumeValue" for="japaVolume">65%</output></label></div>
   <details id="japaVoiceSettings"><summary>Voice & pace</summary><div class="japa-fields"><label>Device voice<select id="japaVoice"><option value="">Automatic · prefer Hindi</option></select></label><label>Pace<select id="japaPace"><option value="0.7">Slow</option><option value="0.85" selected>Gentle</option><option value="1">Normal</option></select></label></div><p class="small-note">Built-in playback is a device-generated spoken recitation, not a singer’s recording. Voice availability and pronunciation depend on your device. Use My audio recording for the chant you prefer.</p></details>
   <audio id="japaAudio" loop preload="metadata" hidden></audio>
  </section>

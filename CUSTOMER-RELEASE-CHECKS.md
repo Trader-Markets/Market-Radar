@@ -103,3 +103,13 @@ Naam Japa now opens in Record my voice mode. A user gesture requests audio-only 
 Capture is bounded to five minutes and 100 MB. Playback is disabled while capturing. Microphone tracks are released on stop, error, cancellation, source change and page close; a late permission grant cannot restart a cancelled capture. Recordings remain browser-session-local, so users should download a copy before reloading.
 
 Automated tests cover capture lifecycle, permission denial, late grants, empty/error cases, format selection, downloads, looping and cleanup. No actual microphone or speaker was accessed here; device-specific sound quality and permission UI still need customer testing.
+
+## Radha–Krishna library — bhakti.7
+
+Added favourite devotional selections for Shrimati Radha Rani, Shri Govinddevji Maharaj and Shri Radhavallabh Lal Ji. These name invocations are labelled traditional/personal, not Bhagavad Gita quotations. Scripture recitations include Bhagavad Gita 9.22 and 9.34, Srimad Bhagavatam 10.21.5 and Brahma-samhita 5.1, with source links. The Hare Krishna form is linked to the Caitanya-caritamrita Adi 3.40 commentary and is not labelled a Gita verse. Only ancient source verses and simple transliterations are included; modern translations/commentaries and recorded audio are not copied.
+
+Users can enter up to 500 characters of their own japa, record it, or use a clearly labelled device voice. Choosing another text does not transform an existing voice recording.
+
+Saint/temple mode accepts a single YouTube recording link and uses its original embedded player with controls, autoplay off and single-video repeat configured. Up to 12 chosen links can be saved in this browser. This is original-source playback, not saint voice cloning, historical voice reconstruction or a claim of verified speaker identity. Real provider playback, availability, ads, live streams and embedding permissions remain provider-dependent. No recording is loaded until explicitly selected/loaded. Leaving provider mode removes the iframe.
+
+References checked on 2026-10-18: holy-bhagavad-gita.org/chapter/9/verse/22/ and /34/; vedabase.io/en/library/sb/10/21/5/; /bs/5/1/; /cc/adi/3/40/; developers.google.com/youtube/player_parameters. Temple links: mandirshrigovinddevjijaipur.org and radhavallabhmandir.com. No live recording is preselected, fabricated or represented as endorsed by a temple.
