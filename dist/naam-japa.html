@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f1eaf7"><title>Naam Japa · Market Radar</title><style id="radar-ui-system">/* Shared presentation layer. Keep chart-provider iframes and trading logic isolated. */
+:root{--radar-bg:#f5f6fa;--radar-surface:#fff;--radar-text:#253448;--radar-muted:#536278;--radar-line:#dce2ec;--radar-primary:#624082;--radar-primary-hover:#4d2f6a;--radar-tint:#f1eaf7;--radar-positive:#17694e;--radar-negative:#a73745;color-scheme:light}
+html{scroll-padding-top:24px}
+html body{background:var(--radar-bg);color:var(--radar-text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.6}
+html body *,html body *::before,html body *::after{box-sizing:border-box}
+html body [hidden],html body .hide{display:none!important}
+html body :where(main,section,article,nav,header,footer,form,fieldset,details,div,label){min-width:0}
+html body h1{font-size:clamp(25px,2.6vw,34px);line-height:1.25;letter-spacing:-.025em}
+html body h2{font-size:21px;line-height:1.4;letter-spacing:-.015em}
+html body h3{font-size:18px;line-height:1.45}
+html body p{overflow-wrap:anywhere}
+html body :where(button,input,select,textarea){font:inherit;max-width:100%}
+html body :where(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #8561aa;outline-offset:3px}
+html body button{min-height:44px;line-height:1.4;white-space:normal}
+html body button:disabled{cursor:not-allowed}
+html body :where(input:not([type=checkbox]):not([type=radio]),select,textarea){min-height:44px;background:#fff;color:var(--radar-text);border:1px solid #b9c5d6;border-radius:8px;padding:10px 12px;min-width:0}
+html body :where(input[type=checkbox],input[type=radio]){width:18px;min-height:18px;height:18px;flex:0 0 18px;vertical-align:middle;accent-color:var(--radar-primary)}
+html body :where(label:has(>input[type=checkbox]),label:has(>input[type=radio])){display:flex;flex-direction:row;align-items:center;gap:9px}
+html body :where(a){text-underline-offset:3px}
+html body :where(.muted,.small-note,.chart-note,.ticket-note,.settings-status,.source,.time,.hint,.foot,.learning-muted,.stock-status){color:var(--radar-muted);font-size:14px;line-height:1.65}
+html body :where(.panel,.market-section,.stock-card){background:var(--radar-surface);border:1px solid var(--radar-line);border-radius:14px;box-shadow:0 2px 8px #25344804}
+html body :where(.panel,.market-section,.stock-card) h2{margin-top:0}
+html body .shell{max-width:1480px;width:100%;padding:24px 28px 56px}
+html body :where(#stocksWorkspace,#indiaWorkspace,#learningWorkspace){max-width:1480px!important;width:100%;padding:28px!important;margin:0 auto;line-height:1.6}
+html body :where(#stocksWorkspace,#indiaWorkspace) h1{color:#39264f;font-size:clamp(25px,2.6vw,34px)}
+html body .heading{margin:24px 0;align-items:center;flex-wrap:wrap}
+html body .heading p{max-width:72ch;line-height:1.65}
+html body .top{gap:16px;flex-wrap:wrap;padding-bottom:20px}
+html body .actions{flex-wrap:wrap}
+html body .controls{gap:14px;padding:18px;margin-bottom:20px;align-items:end;background:#fafbfe}
+html body .control{flex:1 1 165px;max-width:340px;min-width:0}
+html body .control :where(select,input){width:100%;min-width:0}
+html body :where(.control label,.key-form label,.broker-label,.ticket-grid label){font-size:14px;font-weight:650;color:#42516a;line-height:1.5;letter-spacing:0;text-transform:none}
+html body .hint{flex:1 1 260px;max-width:440px;margin-left:0}
+html body :where(.refresh,.broker-submit){background:var(--radar-primary);border:1px solid var(--radar-primary);color:#fff;font-weight:700;padding:11px 17px;border-radius:8px}
+html body :where(.refresh,.broker-submit):hover:not(:disabled){background:var(--radar-primary-hover);border-color:var(--radar-primary-hover);color:#fff}
+html body .mode{border:1px solid #bdc7d8;background:white;color:#42516a;border-radius:8px;padding:10px 14px}
+html body .mode:hover:not(:disabled){background:#f5f1fa;border-color:#9675b4}
+html body :where(.mode.active,.setup-navigation .mode.active){background:var(--radar-primary);color:#fff;border-color:var(--radar-primary)}
+html body .asset-nav{display:flex!important;align-items:center;flex-wrap:wrap;gap:8px!important;padding:14px 28px!important;background:#fff!important;border-bottom:1px solid var(--radar-line);box-shadow:none;position:relative;z-index:5}
+html body .asset-nav strong{margin-right:auto;color:#39264f;font-size:12px!important;letter-spacing:1.4px!important}
+html body .asset-nav :where(button,.learning-nav-link){display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:10px 15px;border:1px solid transparent;border-radius:8px;background:transparent;color:#4e5c73;font-size:14px;font-weight:650;text-decoration:none;line-height:1.4;white-space:normal;text-align:center}
+html body .asset-nav :where(button,.learning-nav-link):hover{background:#f5f1fa;color:#4d2f6a}
+html body .asset-nav [aria-pressed=true],html body .asset-nav [aria-current=page]{background:var(--radar-tint);border-color:#d9c8e8;color:#4d2f6a}
+html body .tabs{gap:6px;flex-wrap:wrap;overflow:visible;margin:20px 0 24px;padding-bottom:8px;border-color:var(--radar-line)}
+html body .tab{padding:11px 16px;border:1px solid transparent;border-radius:8px;color:#4e5c73}
+html body .tab.active{background:var(--radar-tint);border:1px solid #d9c8e8;color:#4d2f6a}
+html body :where(.stock-tabs,.india-tabs,.setup-navigation){display:flex;flex-wrap:wrap;gap:8px;padding:0 0 16px;margin:20px 0 24px;border-bottom:1px solid var(--radar-line)}
+html body #stocksWorkspace button,html body #indiaWorkspace button{border:1px solid #bdc7d8;background:#fff;color:#42516a;border-radius:8px;font-weight:650}
+html body #stocksWorkspace .stock-tabs button,html body #indiaWorkspace .india-tabs button{padding:10px 15px;border:1px solid #cbd4e2;background:#fff;color:#42516a;font-weight:650;border-radius:8px}
+html body #stocksWorkspace .stock-tabs button[aria-current=page],html body #indiaWorkspace .india-tabs button[aria-current=page]{background:var(--radar-primary);border-color:var(--radar-primary);color:#fff}
+html body #stocksWorkspace .stock-company button[aria-pressed=true]{background:var(--radar-tint);border-color:#cbb2df;color:#4d2f6a}
+html body #indiaWorkspace :is(#indiaScan,#indiaDraw,#fyersSave,#fyersComplete,#ruleAdd){background:var(--radar-primary);border-color:var(--radar-primary);color:#fff}
+html body .setup-navigation .mode{padding:11px 16px}
+html body .section-head{align-items:center;flex-wrap:wrap;gap:12px;margin:22px 0 14px}
+html body .section-head h2,html body .section-head h3{margin:0}
+html body :where(.planner-card,.api-panel,.market-section){padding:24px;margin-bottom:20px}
+html body .api-panel{max-width:none}
+html body :where(.key-form,.market-controls,.stock-controls){display:flex;align-items:end;flex-wrap:wrap;gap:14px;margin:18px 0}
+html body :where(.key-form,.market-controls,.stock-controls)>label{display:grid;gap:7px;flex:1 1 190px;max-width:420px;min-width:0;font-size:14px;color:#42516a}
+html body :where(.key-form,.market-controls,.stock-controls)>label:has(>input[type=checkbox]){display:flex;flex-direction:row;align-items:center}
+html body :where(.key-form,.market-controls,.stock-controls) :where(input:not([type=checkbox]),select,textarea){width:100%;min-width:0}
+html body :where(.market-controls,.market-section)>button{padding:10px 15px;border:1px solid #bdc7d8;background:#fff;color:#42516a;border-radius:8px}
+html body :where(.account-toolbar,.ticket-actions,.position-actions){gap:10px;flex-wrap:wrap}
+html body .stock-controls{padding:18px;background:#fff;border:1px solid var(--radar-line);border-radius:12px}
+html body .stock-note{background:#f4f1f8;border-color:#ded5e9;color:#554763;font-size:14px!important;line-height:1.65;padding:14px 16px!important}
+html body .market-data-details{margin:16px 0 20px;padding:12px 16px;border:1px solid var(--radar-line);border-radius:10px;background:#fff}
+html body .market-data-details>summary{cursor:pointer;font-size:14px;font-weight:650;color:#536278;line-height:1.6}
+html body .stock-card{padding:22px!important;overflow:hidden!important;margin:20px 0!important}
+html body .stock-card>div{max-width:100%;overflow-x:auto}
+html body .stock-widget.chart{min-width:0;width:100%}
+html body .index-directory{display:block;padding:18px;margin:24px 0;background:#fff;border:1px solid var(--radar-line)}
+html body .index-directory summary{font-size:15px;color:#42516a;cursor:pointer;line-height:1.5}
+html body .index-region{margin-top:24px}
+html body .index-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+html body .index-tile{grid-template-columns:1fr;gap:8px;padding:16px;border-color:var(--radar-line)}
+html body .index-tile strong{font-size:16px;color:#253448}
+html body .index-tile :where(button,a){justify-self:start;font-size:14px}
+html body .index-tile small{font-size:13px;color:var(--radar-muted)}
+html body .stock-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+html body .stock-company{padding:18px;gap:10px;border-color:var(--radar-line)}
+html body .stock-company small{font-size:13px}
+html body .trade-workspace{display:grid;grid-template-columns:minmax(0,1fr) 350px;grid-template-areas:'chart ticket' 'book ticket' 'positions positions' 'demo demo' 'monitor monitor';gap:20px;align-items:start}
+html body .trade-workspace>.chart-panel{grid-area:chart;padding:22px}
+html body .trade-workspace>.simple-ticket{grid-area:ticket;position:static;padding:22px;margin:0}
+html body .trade-workspace>.orderbook{grid-area:book;display:block;padding:22px}
+html body .trade-workspace>#tradePositions{grid-area:positions}
+html body .trade-workspace>#demoPanel{grid-area:demo}
+html body .trade-workspace>#tradeMonitorPanel{grid-area:monitor}
+html body .trade-workspace>.trade-positions{padding:22px}
+html body .trade-workspace>.chart-panel.chart-expanded{position:fixed;inset:12px;max-width:none;overflow-y:auto;z-index:1000}
+html body .chart-heading{padding:0 0 16px!important;align-items:start;flex-wrap:wrap}
+html body .chart-heading>div{min-width:0}
+html body .chart-heading :where(p,strong){overflow-wrap:anywhere}
+html body .price-chart{width:100%;height:440px;min-height:280px;overflow:hidden}
+html body .chart-picking{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0}
+html body .chart-picking button{padding:8px 14px;border:1px solid #c5cfde;border-radius:8px;text-decoration:none;font-size:14px;min-height:40px}
+html body .chart-picking button.active{background:var(--radar-tint);color:#4d2f6a;border-color:#9675b4}
+html body .broker-label{display:grid;gap:6px;margin:14px 0}
+html body .broker-label :where(input,select){width:100%}
+html body .broker-two{gap:12px;flex-wrap:wrap}
+html body .broker-bracket .ticket-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+html body .ticket-note{font-size:14px!important;line-height:1.65!important}
+html body .ticket-result{font-size:14px!important;padding:14px!important;line-height:1.6}
+html body .ticket-actions{display:flex}
+html body .broker-submit{width:100%}
+html body .ticket-grid :where(input,select){min-width:0}
+html body :where(.table-wrap,.market-table-scroll,.desk-scroll){display:block;width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-gutter:stable;border-radius:10px}
+html body :where(.table,.market-table,.desk-table){width:100%;border-collapse:collapse;font-size:14px;text-align:left;color:var(--radar-text);background:#fff}
+html body :where(.market-table,.desk-table){min-width:620px}
+html body :where(.table,.market-table,.desk-table) :where(th,td){font-size:14px;line-height:1.5;padding:13px 15px!important;border-bottom:1px solid #e3e8f0;vertical-align:top;text-align:left!important;white-space:nowrap!important;overflow-wrap:normal}
+html body :where(.table,.market-table,.desk-table) th{color:#4d5b70;background:#f3f5fa;font-size:13px;font-weight:650;letter-spacing:0;text-transform:none}
+html body :where(.table,.market-table,.desk-table) tbody tr:nth-child(even){background:#fafbfe}
+html body :where(.market-table,.desk-table) td:first-child{white-space:normal!important;overflow-wrap:anywhere;min-width:140px;max-width:280px}
+html body :where(.market-table,.desk-table) td:last-child{white-space:normal!important;min-width:130px;max-width:420px}
+html body .details td{white-space:normal!important}
+html body :where(.stats,.metric-cards){grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+html body :where(.stat,.metric-cards article){padding:18px;min-width:0;background:#fff;border-color:var(--radar-line)}
+html body :where(.stat strong,.metric-cards strong){font-size:clamp(21px,2.1vw,28px);line-height:1.35;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;color:var(--radar-text)}
+html body :where(.stat span,.stat small,.metric-cards small){font-size:13px;line-height:1.5;color:var(--radar-muted)}
+html body .positive{color:var(--radar-positive)}
+html body .negative{color:var(--radar-negative)}
+html body :where(.error,.market-error){background:#fff1f2;color:#9b283a;border:1px solid #edc6cd;padding:14px 16px;border-radius:9px;line-height:1.65;font-size:14px;overflow-wrap:anywhere}
+html body .market-status{color:#43536a;background:#f2f5fa;border-radius:9px;line-height:1.65}
+html body :where(.market-status,.market-error,.settings-status):empty{display:none}
+html body .empty{padding:32px 20px;white-space:normal;line-height:1.65;font-size:15px}
+html body dialog{width:min(620px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;padding:24px;background:#fff;color:var(--radar-text);border:1px solid #c9b6da;border-radius:14px}
+html body dialog:modal{margin:auto}
+html body dialog .key-form{margin-bottom:0}
+html body #reviewDetails dl{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+html body .custom-alert-toast{max-width:min(480px,calc(100vw - 32px));background:#39264f;right:16px;bottom:16px;flex-wrap:wrap;padding:16px;color:#fff}
+html body .custom-alert-toast button{background:#fff;color:#39264f;min-height:44px}
+html body #telegramNews .section-head{gap:12px}
+html body #telegramNews .telegram-source-link{white-space:normal;text-align:right}
+html body .telegram-post header{flex-wrap:wrap}
+html body .telegram-post-text{font-size:16px;line-height:1.8}
+html body .learning-title p{font-size:16px;max-width:70ch}
+html body .learning-presets{gap:8px}
+html body .learning-presets button{min-width:86px;padding:10px 14px;font-size:14px}
+html body .learning-presets button[aria-pressed=true],html body #learningSync,html body #learningSaveNote{background:var(--radar-primary);border-color:var(--radar-primary);color:#fff}
+html body .calendar-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:4px}
+html body .pnl-calendar{gap:8px;margin:14px 0;min-width:560px}
+html body .calendar-day{min-height:108px;padding:10px;gap:8px}
+html body .calendar-day strong{font-size:16px;line-height:1.4;letter-spacing:0;overflow-wrap:anywhere}
+html body .calendar-day small{font-size:12px;line-height:1.5}
+html body .calendar-date{font-size:14px}
+html body .calendar-weekday{font-size:13px}
+html body .calendar-scroll-hint{display:none;font-size:13px;color:var(--radar-muted);margin:10px 0}
+html body .calendar-toolbar{gap:10px}
+html body .calendar-toolbar button{min-width:44px}
+html body .learning-help{margin-top:20px}
+html body .feedback-card{padding:20px;border-color:var(--radar-line);background:#fafbfe;border-left-color:#9675b4}
+html body .feedback-card p{font-size:15px;line-height:1.7}
+html body .feedback-card h4{font-size:17px;line-height:1.5}
+html body .skip-link{position:fixed;top:8px;left:16px;transform:translateY(-160%);z-index:2000;padding:12px 18px;background:#39264f;color:#fff;border-radius:8px}
+html body .skip-link:focus{transform:translateY(0)}
+html body .japa-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 28px;background:#fff;border-bottom:1px solid var(--radar-line);font-size:14px;color:var(--radar-muted)}
+html body .japa-header a{color:#624082;font-weight:650;text-decoration:none}
+html body #japaWorkspace{max-width:860px;margin:0 auto;padding:48px 24px 56px}
+html body .japa-intro{text-align:center;margin-bottom:30px}
+html body .japa-intro small{font-size:12px;letter-spacing:1.5px;color:#624082;font-weight:700}
+html body .japa-intro h1{margin:12px 0;color:#39264f}
+html body .japa-intro p{color:var(--radar-muted)}
+html body .japa-card{padding:28px;border:1px solid #ddd1e8;background:#fff;border-radius:20px;box-shadow:0 10px 36px #39264f08}
+html body .japa-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+html body .japa-fields label,html body .japa-file{display:grid;gap:8px;font-size:14px;color:#536278;font-weight:650}
+html body .japa-fields select{width:100%}
+html body .japa-verse{margin:28px 0;padding:28px 20px;border-radius:14px;background:linear-gradient(135deg,#f6effb,#f9f5ed);text-align:center}
+html body #japaHindi{font-size:clamp(23px,4vw,32px);line-height:1.9;color:#624082;margin:0 0 14px}
+html body #japaRoman{font-size:15px;line-height:1.9;color:#6a577b;max-width:55ch;margin:0 auto}
+html body .japa-actions{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 24px}
+html body #japaPlay{flex:2 1 200px}
+html body .japa-actions .mode{flex:1 1 90px}
+html body .japa-volume{display:flex;align-items:center;gap:14px;font-size:14px;font-weight:650}
+html body .japa-volume input{flex:1;min-width:0;accent-color:#624082;border:0;background:transparent;padding:0}
+html body #japaVolumeValue{min-width:40px;text-align:right}
+html body .japa-status{padding:13px 16px;min-height:50px;border:1px solid #ded5e9;border-radius:9px;background:#f5f1fa;color:#554763;font-size:14px;line-height:1.6}
+html body .japa-status.japa-error{color:#9b283a;border-color:#edc6cd;background:#fff1f2}
+html body #japaFilePanel{padding:24px 0}
+html body #japaFilePanel p{margin:12px 0}
+html body #japaFileName{overflow-wrap:anywhere;font-weight:650;color:#39264f}
+html body #japaVoiceSettings{margin-top:24px;border-top:1px solid var(--radar-line);padding-top:16px}
+html body #japaVoiceSettings summary{font-size:14px;font-weight:650;color:#536278;cursor:pointer}
+html body #japaVoiceSettings .japa-fields{margin:16px 0}
+html body .japa-help{font-size:14px;line-height:1.8;color:#536278;margin:24px 4px}
+@media(max-width:1180px){
+ html body .trade-workspace{grid-template-columns:minmax(0,1fr);grid-template-areas:'chart' 'ticket' 'book' 'positions' 'demo' 'monitor'}
+ html body .trade-workspace>.simple-ticket{max-width:none}
+ html body .trade-workspace .broker-label{max-width:none}
+ html body .index-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+}
+@media(max-width:850px){
+ html body :where(.stats,.metric-cards){grid-template-columns:repeat(2,minmax(0,1fr))}
+ html body .asset-nav strong{width:100%;margin:0 0 4px}
+ html body .shell,html body :where(#stocksWorkspace,#indiaWorkspace,#learningWorkspace){padding:20px!important}
+ html body .asset-nav{padding:12px 20px!important}
+ html body .stock-controls label{min-width:0}
+ html body .planner-grid,html body .detail-grid{grid-template-columns:minmax(0,1fr)}
+ html body .list-controls{flex-wrap:wrap}
+ html body .list-controls input{width:100%;min-width:0}
+}
+@media(max-width:600px){
+ html body #japaWorkspace{padding:28px 12px 40px}
+ html body .japa-header{padding:14px 16px;flex-wrap:wrap}
+ html body .japa-card{padding:18px}
+ html body .japa-fields{grid-template-columns:minmax(0,1fr);gap:14px}
+ html body .japa-verse{margin:22px 0;padding:22px 16px}
+ html body{font-size:15px}
+ html body .shell,html body :where(#stocksWorkspace,#indiaWorkspace,#learningWorkspace){padding:18px 12px 40px!important}
+ html body .asset-nav{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));padding:12px!important;gap:8px!important}
+html body .asset-nav strong,html body .asset-nav .learning-nav-link:last-child{grid-column:1/-1}
+ html body .asset-nav .japa-nav-link:last-child{grid-column:auto}
+ html body .asset-nav :where(button,.learning-nav-link){width:100%;font-size:14px;padding:10px 8px;border-color:#e2e6ef}
+ html body .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ html body .tabs .tab{width:100%;text-align:center;background:#fff;border-color:#dce2ec}
+ html body .tabs .tab.active{background:var(--radar-tint);border-color:#cbb2df}
+ html body .tabs .settings-tab{grid-column:1/-1}
+ html body :where(.stock-tabs,.india-tabs,.setup-navigation){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ html body :where(.stock-tabs,.india-tabs,.setup-navigation) button{width:100%;font-size:14px;line-height:1.5;padding:10px!important;text-align:center}
+ html body .stock-tabs button:last-child:nth-child(odd){grid-column:1/-1}
+ html body .controls{padding:14px;gap:12px}
+ html body .control{flex-basis:100%;max-width:none}
+ html body .controls>button{flex:1 1 100%}
+ html body :where(.market-controls,.stock-controls,.key-form)>label{flex-basis:100%;width:100%;max-width:none}
+ html body :where(.market-controls,.stock-controls,.key-form)>button{flex:1 1 100%;width:100%}
+ html body :where(.planner-card,.api-panel,.market-section,.stock-card,.trade-workspace>.chart-panel,.trade-workspace>.simple-ticket,.trade-workspace>.orderbook,.trade-workspace>.trade-positions){padding:16px!important}
+ html body .heading{margin:20px 0;gap:16px}
+ html body .heading .actions{width:100%;justify-content:space-between}
+ html body .trade-workspace{gap:16px}
+ html body .price-chart{height:340px}
+ html body .chart-heading{gap:14px}
+ html body .trade-workspace>.chart-panel.chart-expanded{inset:0;border-radius:0}
+ html body .broker-bracket .ticket-grid{grid-template-columns:minmax(0,1fr)}
+ html body .broker-presets{flex-wrap:wrap;gap:6px}
+ html body .broker-presets button{min-width:44px;flex:1 1 48px}
+ html body .stats,html body .metric-cards{gap:10px}
+ html body .stat,html body .metric-cards article{padding:14px}
+ html body .index-grid{grid-template-columns:minmax(0,1fr)}
+ html body .index-tile{padding:16px;grid-template-columns:1fr auto}
+ html body .index-tile :where(strong,small){grid-column:1/-1}
+ html body .section-head{align-items:start}
+ html body .table-wrap::before,html body .market-table-scroll::before,html body .desk-scroll::before{content:'Scroll table left or right to see all columns';display:block;position:sticky;left:0;padding:8px 12px;font-size:12px;line-height:1.5;color:#536278;background:#f3f5fa;width:100%;min-width:0}
+ html body .calendar-scroll-hint{display:block}
+ html body .calendar-day{min-height:106px;padding:9px}
+ html body .calendar-day strong{font-size:14px}
+ html body .calendar-day small{font-size:12px}
+ html body .calendar-toolbar h3{font-size:17px;flex:1;min-width:0}
+ html body .calendar-toolbar button:last-child{flex:1 1 100%;width:100%;margin-left:0}
+ html body .learning-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ html body .learning-presets button{min-width:0;width:100%;font-size:14px}
+ html body .learning-presets button:last-child{grid-column:auto}
+ html body .telegram-post header{padding:14px}
+ html body #telegramNews .telegram-source-link{margin-left:0;flex-basis:100%;text-align:left}
+ html body .custom-alert-toast{left:12px;right:12px;bottom:12px;max-width:none}
+ html body dialog{padding:18px}
+ html body dialog .key-form>button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){html body *,html body *::before,html body *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style></head>
+<body class="japa-page">
+<header class="japa-header"><a href="/">← Market Radar</a><span>Your quiet space</span></header>
+<main id="japaWorkspace">
+ <div class="japa-intro"><small>RADHA KRISHNA · NAAM JAPA</small><h1>A moment of remembrance</h1><p>Press Play once. Your chosen mantra repeats until you pause or stop.</p></div>
+ <section class="japa-card" aria-label="Mantra player">
+  <div class="japa-fields"><label>Listen to<select id="japaSource"><option value="voice">Built-in spoken mantra</option><option value="file">My audio recording</option></select></label><label id="japaMantraLabel">Choose mantra<select id="japaMantra"><option value="radha">Radha Krishna naam japa</option><option value="hare">Hare Krishna maha mantra</option></select></label></div>
+  <div id="japaVerse" class="japa-verse"><p id="japaHindi" lang="hi"></p><p id="japaRoman"></p></div>
+  <div id="japaFilePanel" hidden><label class="japa-file">Choose an audio file<input id="japaFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac,.webm"></label><p id="japaFileName">No recording selected.</p><p class="small-note">Your file is played locally and is not uploaded by Market Radar. Select it again after reloading this page. Maximum 100 MB.</p></div>
+  <p id="japaStatus" class="japa-status" role="status" aria-live="polite">Ready. Choose a mantra and press Play.</p>
+  <div class="japa-actions"><button id="japaPlay" class="refresh" type="button">▶ Play continuously</button><button id="japaPause" class="mode" type="button" disabled>Pause</button><button id="japaStop" class="mode" type="button" disabled>Stop</button></div>
+  <label class="japa-volume">Volume<input id="japaVolume" type="range" min="0" max="100" value="65" step="1"><output id="japaVolumeValue" for="japaVolume">65%</output></label>
+  <details id="japaVoiceSettings"><summary>Voice & pace</summary><div class="japa-fields"><label>Device voice<select id="japaVoice"><option value="">Automatic · prefer Hindi</option></select></label><label>Pace<select id="japaPace"><option value="0.7">Slow</option><option value="0.85" selected>Gentle</option><option value="1">Normal</option></select></label></div><p class="small-note">Built-in playback is a device-generated spoken recitation, not a singer’s recording. Voice availability and pronunciation depend on your device. Use My audio recording for the chant you prefer.</p></details>
+  <audio id="japaAudio" loop preload="metadata" hidden></audio>
+ </section>
+ <p class="japa-help">Keep this tab open while you use Market Radar in another tab. Closing this tab stops playback. A sleeping device or browser restrictions can interrupt background audio. Playback starts only when you press Play.</p>
+</main><script src="/naam-japa.js" defer></script></body></html>

@@ -1,0 +1,32 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {parseHTML} from 'linkedom';
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+function fixture(supportSpeech=true){
+ const {window,document}=parseHTML(fs.readFileSync('dist/naam-japa.html','utf8'));
+ Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return this._value??this.querySelector('option[selected]')?.value??this.querySelector('option')?.value??''},set(v){this._value=String(v)}});
+ const spoken=[],timers=new Map(),revoked=[],store=new Map();let nextTimer=0,playCalls=0,selected=[],playImpl=async()=>{};
+ const audio=document.getElementById('japaAudio');audio.pause=()=>{audio.paused=true};audio.play=()=>{playCalls++;audio.paused=false;return playImpl()};audio.load=()=>{};
+ Object.defineProperty(document.getElementById('japaFile'),'files',{get:()=>selected});
+ window.SpeechSynthesisUtterance=supportSpeech?class{constructor(text){this.text=text}}:undefined;
+ window.speechSynthesis=supportSpeech?{getVoices:()=>[{name:'Hindi',lang:'hi-IN',default:true}],speak:u=>spoken.push(u),cancel:()=>{},addEventListener:()=>{}}:undefined;
+ const context=vm.createContext({document,window,localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},URL:{createObjectURL:()=> 'blob:recording-'+Math.random(),revokeObjectURL:u=>revoked.push(u)},setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id},clearTimeout:id=>timers.delete(id)});
+ vm.runInContext(fs.readFileSync('dist/naam-japa.js','utf8'),context);
+ const el=id=>document.getElementById('japa'+id),click=id=>el(id).click(),change=(id,value)=>{el(id).value=value;el(id).dispatchEvent(new window.Event('change'))};
+ return {window,document,spoken,timers,revoked,audio,el,click,change,playCalls:()=>playCalls,setFile:file=>{selected=[file];el('File').dispatchEvent(new window.Event('change'))},setPlay:fn=>playImpl=fn};
+}
+const p=fixture();assert.equal(p.spoken.length,0,'no autoplay');assert.equal(p.audio.loop,true);
+p.change('Mantra','hare');p.click('Play');assert.equal(p.spoken.length,1);assert.match(p.spoken[0].text,/हरे कृष्ण.*हरे राम/);
+let utterance=p.spoken[0];utterance.onstart();assert.match(p.el('Status').textContent,/Playing spoken/);utterance.onend();const repeat=[...p.timers.values()].find(x=>x.delay===650);assert.ok(repeat);repeat.fn();assert.equal(p.spoken.length,2,'completed mantra repeats');
+const oldEnd=p.spoken[1].onend;p.click('Pause');assert.equal(p.el('Play').textContent,'▶ Resume');oldEnd();assert.equal(p.spoken.length,2,'late callbacks cannot restart a paused session');
+p.click('Play');assert.equal(p.spoken.length,3);p.click('Stop');assert.equal(p.timers.size,0);assert.equal(p.el('Stop').disabled,true);
+p.change('Source','file');p.click('Play');assert.match(p.el('Status').textContent,/Choose an audio recording first/);assert.equal(p.playCalls(),0);
+p.setFile({name:'bad.txt',type:'text/plain',size:20});assert.match(p.el('Status').textContent,/audio file/);
+p.setFile({name:'My chant.mp3',type:'audio/mpeg',size:1234});assert.equal(p.el('FileName').textContent,'My chant.mp3');assert.equal(p.audio.loop,true);p.click('Play');await flush();assert.equal(p.playCalls(),1);assert.match(p.el('Status').textContent,/continuous repeat/);
+p.click('Pause');assert.equal(p.audio.paused,true);p.click('Play');await flush();assert.equal(p.playCalls(),2);
+p.setFile({name:'Another chant.wav',type:'audio/wav',size:1234});assert.equal(p.revoked.length,1,'replacing a recording releases the prior object URL');
+p.setPlay(async()=>{throw Error('Playback blocked')});p.click('Play');await flush();assert.match(p.el('Status').textContent,/Audio could not start/);assert.equal(p.el('Play').disabled,false);
+let finish;p.setPlay(()=>new Promise(resolve=>finish=resolve));p.click('Play');p.click('Stop');finish();await flush();p.audio.dispatchEvent(new p.window.Event('playing'));assert.equal(p.audio.paused,true);assert.match(p.el('Status').textContent,/Stopped/);
+const unsupported=fixture(false);unsupported.click('Play');assert.match(unsupported.el('Status').textContent,/no supported device voice/);unsupported.change('Source','file');unsupported.setFile({name:'chant.mp3',type:'audio/mpeg',size:20});unsupported.click('Play');await flush();assert.match(unsupported.el('Status').textContent,/continuous repeat/);
+console.log('PASS Naam Japa: no autoplay, exact maha mantra, continuous speech repeat, pause/stop, stale-callback isolation, local recording loop, file validation, blocked playback recovery and speech-unavailable fallback; no real audio rendering');

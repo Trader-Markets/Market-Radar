@@ -280,6 +280,35 @@ html body .feedback-card p{font-size:15px;line-height:1.7}
 html body .feedback-card h4{font-size:17px;line-height:1.5}
 html body .skip-link{position:fixed;top:8px;left:16px;transform:translateY(-160%);z-index:2000;padding:12px 18px;background:#39264f;color:#fff;border-radius:8px}
 html body .skip-link:focus{transform:translateY(0)}
+html body .japa-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 28px;background:#fff;border-bottom:1px solid var(--radar-line);font-size:14px;color:var(--radar-muted)}
+html body .japa-header a{color:#624082;font-weight:650;text-decoration:none}
+html body #japaWorkspace{max-width:860px;margin:0 auto;padding:48px 24px 56px}
+html body .japa-intro{text-align:center;margin-bottom:30px}
+html body .japa-intro small{font-size:12px;letter-spacing:1.5px;color:#624082;font-weight:700}
+html body .japa-intro h1{margin:12px 0;color:#39264f}
+html body .japa-intro p{color:var(--radar-muted)}
+html body .japa-card{padding:28px;border:1px solid #ddd1e8;background:#fff;border-radius:20px;box-shadow:0 10px 36px #39264f08}
+html body .japa-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+html body .japa-fields label,html body .japa-file{display:grid;gap:8px;font-size:14px;color:#536278;font-weight:650}
+html body .japa-fields select{width:100%}
+html body .japa-verse{margin:28px 0;padding:28px 20px;border-radius:14px;background:linear-gradient(135deg,#f6effb,#f9f5ed);text-align:center}
+html body #japaHindi{font-size:clamp(23px,4vw,32px);line-height:1.9;color:#624082;margin:0 0 14px}
+html body #japaRoman{font-size:15px;line-height:1.9;color:#6a577b;max-width:55ch;margin:0 auto}
+html body .japa-actions{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 24px}
+html body #japaPlay{flex:2 1 200px}
+html body .japa-actions .mode{flex:1 1 90px}
+html body .japa-volume{display:flex;align-items:center;gap:14px;font-size:14px;font-weight:650}
+html body .japa-volume input{flex:1;min-width:0;accent-color:#624082;border:0;background:transparent;padding:0}
+html body #japaVolumeValue{min-width:40px;text-align:right}
+html body .japa-status{padding:13px 16px;min-height:50px;border:1px solid #ded5e9;border-radius:9px;background:#f5f1fa;color:#554763;font-size:14px;line-height:1.6}
+html body .japa-status.japa-error{color:#9b283a;border-color:#edc6cd;background:#fff1f2}
+html body #japaFilePanel{padding:24px 0}
+html body #japaFilePanel p{margin:12px 0}
+html body #japaFileName{overflow-wrap:anywhere;font-weight:650;color:#39264f}
+html body #japaVoiceSettings{margin-top:24px;border-top:1px solid var(--radar-line);padding-top:16px}
+html body #japaVoiceSettings summary{font-size:14px;font-weight:650;color:#536278;cursor:pointer}
+html body #japaVoiceSettings .japa-fields{margin:16px 0}
+html body .japa-help{font-size:14px;line-height:1.8;color:#536278;margin:24px 4px}
 @media(max-width:1180px){
  html body .trade-workspace{grid-template-columns:minmax(0,1fr);grid-template-areas:'chart' 'ticket' 'book' 'positions' 'demo' 'monitor'}
  html body .trade-workspace>.simple-ticket{max-width:none}
@@ -297,10 +326,16 @@ html body .skip-link:focus{transform:translateY(0)}
  html body .list-controls input{width:100%;min-width:0}
 }
 @media(max-width:600px){
+ html body #japaWorkspace{padding:28px 12px 40px}
+ html body .japa-header{padding:14px 16px;flex-wrap:wrap}
+ html body .japa-card{padding:18px}
+ html body .japa-fields{grid-template-columns:minmax(0,1fr);gap:14px}
+ html body .japa-verse{margin:22px 0;padding:22px 16px}
  html body{font-size:15px}
  html body .shell,html body :where(#stocksWorkspace,#indiaWorkspace,#learningWorkspace){padding:18px 12px 40px!important}
  html body .asset-nav{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));padding:12px!important;gap:8px!important}
 html body .asset-nav strong,html body .asset-nav .learning-nav-link:last-child{grid-column:1/-1}
+ html body .asset-nav .japa-nav-link:last-child{grid-column:auto}
  html body .asset-nav :where(button,.learning-nav-link){width:100%;font-size:14px;padding:10px 8px;border-color:#e2e6ef}
  html body .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  html body .tabs .tab{width:100%;text-align:center;background:#fff;border-color:#dce2ec}

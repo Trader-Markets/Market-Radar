@@ -89,3 +89,9 @@ Verification: automated DOM navigation and interaction checks, CSS parsing, colo
 - Quick ledger totals are collapsed; the full Performance & Learnings page remains the main review path. Workspace selection is retained in the URL for reloads and return navigation.
 
 All checks use mocked authenticated provider responses. No real orders, leverage changes or messages were sent. Real Windows rendering, broker credentials/IP access, provider quotas and customer-account reconciliation still require acceptance testing.
+
+## Naam Japa — japa.5
+
+A separate Naam Japa browser tab is linked from the dashboard and performance page. Radha Krishna and Hare Krishna maha mantra support continuous device-voice spoken repetition. Local audio files up to 100 MB use native audio looping without being uploaded. Play, pause/resume, stop, volume, device voice and pace controls are included. Playback never starts automatically. Preferences are browser-local; recordings must be reselected after a reload.
+
+Tests cover repeat scheduling, cancellation, blocked playback, local-file validation, stale callbacks and route integration. Actual audio rendering depends on the browser/OS and was not heard here. Closing the Japa tab stops it; background suspension or a sleeping device can interrupt playback. This is not an unattended server audio service. No devotional recording is bundled or represented as a singer's performance.

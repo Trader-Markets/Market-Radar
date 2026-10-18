@@ -49,3 +49,5 @@ for(const [fg,bg] of [['ffffff','624082'],['ffffff','4d2f6a'],['536278','f5f6fa'
 console.log('PASS assembled workspace navigation/deep links, unique controls, offline recovery, keyboard scroll access, shared CSS parsing and text contrast; no pixel-rendering claim');
 
 const damaged=fixture('',{radarAlerts:'[null,{}, {"title":"Saved alert"}]',radarSeenAlerts:'{}'});assert.match(damaged.document.querySelector('#alertRows').textContent,/Saved alert/);
+
+const japaHome=fixture().document.querySelector('[data-asset=japa]');assert.equal(japaHome.getAttribute('href'),'/naam-japa');assert.equal(japaHome.target,'_blank');assert.match(japaHome.rel,/noopener/);
