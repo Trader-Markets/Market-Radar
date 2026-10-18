@@ -21,12 +21,20 @@ export async function telegramAdapter(config){
   close:()=>client.destroy()
  }
 }
-function safeError(e){const s=String(e?.errorMessage||e?.message||'');if(/FLOOD_WAIT/.test(s))return 'Telegram rate limit: wait '+(Number(e.seconds)||60)+' seconds before retrying.';return ({PHONE_NUMBER_INVALID:'Enter a valid phone number with country code.',PHONE_CODE_INVALID:'Incorrect code. Try again.',PHONE_CODE_EXPIRED:'Code expired. Start again to request a new code.',API_ID_INVALID:'Check your API ID and API hash.',PASSWORD_HASH_INVALID:'Incorrect Telegram two-step verification password.',CHANNEL_NOT_JOINED:'Join @lmwmnews in Telegram, then reconnect.',SIGNUP_REQUIRED:'Use an existing Telegram account.',AUTH_KEY_UNREGISTERED:'Telegram session expired. Disconnect and sign in again.',SESSION_REVOKED:'Telegram session revoked. Disconnect and sign in again.'})[s]||'Telegram connection unavailable. Check your internet and retry.'}
-export function createTelegramService({DB,secret,origin,adapter=telegramAdapter,now=Date.now}){
+function safeError(e){const s=String(e?.errorMessage||e?.message||'');if(/FLOOD_WAIT/.test(s))return 'Telegram rate limit: wait '+(Number(e.seconds)||60)+' seconds before retrying.';return ({CONNECTION_TIMEOUT:'Telegram did not respond within 20 seconds. Retry the saved connection, or check your internet.',PHONE_NUMBER_INVALID:'Enter a valid phone number with country code.',PHONE_CODE_INVALID:'Incorrect code. Try again.',PHONE_CODE_EXPIRED:'Code expired. Start again to request a new code.',API_ID_INVALID:'Check your API ID and API hash.',PASSWORD_HASH_INVALID:'Incorrect Telegram two-step verification password.',CHANNEL_NOT_JOINED:'Join @lmwmnews in Telegram, then reconnect.',SIGNUP_REQUIRED:'Use an existing Telegram account.',AUTH_KEY_UNREGISTERED:'Telegram session expired. Disconnect and sign in again.',SESSION_REVOKED:'Telegram session revoked. Disconnect and sign in again.'})[s]||'Telegram connection unavailable. Check your internet and retry.'}
+export function createTelegramService({DB,secret,origin,adapter=telegramAdapter,now=Date.now,operationTimeoutMs=20000}){
  const key=Buffer.from(secret,'hex');let client=null,config=null,phone='',codeHash='',expires=0,channelId='',state='disconnected',error='',lastSyncAt=null,lastEventAt=null,busy=false,nextRetry=0,items=new Map(),mediaMessages=new Map(),photoCache=new Map(),photoPending=new Map(),photoBytes=0,generation=0,syncEvents=null;
  const ready=DB.prepare('CREATE TABLE IF NOT EXISTS local_telegram_vault (id INTEGER PRIMARY KEY, value TEXT NOT NULL)').bind().run();
  function encrypt(value){const iv=randomBytes(12),c=createCipheriv('aes-256-gcm',key,iv);return JSON.stringify({iv:iv.toString('hex'),data:Buffer.concat([c.update(JSON.stringify(value),'utf8'),c.final()]).toString('hex'),tag:c.getAuthTag().toString('hex')})}
  function decrypt(value){const v=JSON.parse(value),c=createDecipheriv('aes-256-gcm',key,Buffer.from(v.iv,'hex'));c.setAuthTag(Buffer.from(v.tag,'hex'));return JSON.parse(Buffer.concat([c.update(Buffer.from(v.data,'hex')),c.final()]).toString())}
+ async function openAdapter(settings){
+  const raw=await adapter(settings),wrapped={...raw};
+  for(const name of ['connect','authorized','sendCode','code','password','channel','messages'])wrapped[name]=async(...args)=>{
+   let timer;try{return await Promise.race([Promise.resolve().then(()=>raw[name](...args)),new Promise((_,reject)=>{timer=setTimeout(()=>{if(client===wrapped){generation++;client=null;channelId='';}Promise.resolve().then(()=>raw.close()).catch(()=>{});reject(Error('CONNECTION_TIMEOUT'))},operationTimeoutMs)})])}finally{clearTimeout(timer)}
+  };
+  wrapped.close=async()=>{let timer;try{await Promise.race([Promise.resolve().then(()=>raw.close()),new Promise(resolve=>{timer=setTimeout(resolve,Math.min(operationTimeoutMs,5000))})])}finally{clearTimeout(timer)}};
+  return wrapped;
+ }
  async function save(){await ready;await DB.prepare('INSERT OR REPLACE INTO local_telegram_vault(id,value) VALUES(1,?)').bind(encrypt({...config,session:client.session()})).run()}
  function put(m){
   if(!Number.isSafeInteger(m.id)||!Number.isFinite(Number(m.date)))return;
@@ -59,14 +67,18 @@ export function createTelegramService({DB,secret,origin,adapter=telegramAdapter,
  async function sync(){const version=generation,active=client,events=[];syncEvents=events;try{const messages=await active.messages();if(version!==generation)return;items.clear();mediaMessages.clear();for(const m of messages)put(m);for(const event of events)applyUpdate(event);lastSyncAt=now();state='connected';error=''}finally{if(syncEvents===events)syncEvents=null}}
  async function activate(){channelId=await client.channel();const version=generation;client.listen(update=>{if(version!==generation||update.channelId!==channelId)return;if(syncEvents)syncEvents.push(update);applyUpdate(update);lastEventAt=now()});await sync();phone='';codeHash='';expires=0}
  async function close(){generation++;clearPhotoCache();mediaMessages.clear();const old=client;client=null;if(old)await old.close().catch(()=>{});channelId=''}
- function status(){return {local:true,channel:'lmwmnews',state:state==='connected'&&!client?.connected()?'reconnecting':state,busy,error,available:state==='connected'&&!!client?.connected(),checkedAt:now(),lastSuccessAt:lastSyncAt,lastEventAt,articles:[...items.values()].sort((a,b)=>b.id-a.id)}}
- async function restore(){if(busy)return;busy=true;try{await ready;const row=await DB.prepare('SELECT value FROM local_telegram_vault WHERE id=1').bind().first();if(!row)return;config=decrypt(row.value);state='connecting';await close();client=await adapter(config);await client.connect();if(!await client.authorized())throw Error('AUTH_KEY_UNREGISTERED');await activate()}catch(e){error=safeError(e);state='error';nextRetry=now()+60000}finally{busy=false}}
+ function status(){return {local:true,channel:'lmwmnews',state:state==='connected'&&!client?.connected()?'reconnecting':state,busy,error,canRetry:!!config?.session,available:state==='connected'&&!!client?.connected(),checkedAt:now(),lastSuccessAt:lastSyncAt,lastEventAt,articles:[...items.values()].sort((a,b)=>b.id-a.id)}}
+ async function restore(){if(busy)return;busy=true;try{await ready;const row=await DB.prepare('SELECT value FROM local_telegram_vault WHERE id=1').bind().first();if(!row)return;config=decrypt(row.value);state='connecting';await close();client=await openAdapter(config);await client.connect();if(!await client.authorized())throw Error('AUTH_KEY_UNREGISTERED');await activate()}catch(e){error=safeError(e);state='error';nextRetry=now()+60000}finally{busy=false}}
  async function action(d){if(busy)throw Error('BUSY');busy=true;try{
   error='';
+  if(d.action==='retry'){
+   if(!config?.session)throw Error('AUTH_KEY_UNREGISTERED');
+   state='connecting';await close();client=await openAdapter(config);await client.connect();if(!await client.authorized())throw Error('AUTH_KEY_UNREGISTERED');await activate();nextRetry=0;return
+  }
   if(d.action==='disconnect'){await close();await ready;await DB.prepare('DELETE FROM local_telegram_vault WHERE id=1').bind().run();config=null;phone='';codeHash='';expires=0;items.clear();lastSyncAt=null;lastEventAt=null;state='disconnected';return}
   if(d.action==='connect'){
    const apiId=Number(d.apiId),apiHash=String(d.apiHash||'');if(!Number.isSafeInteger(apiId)||apiId<=0||!/^\w{32}$/.test(apiHash)||!/^\+[1-9]\d{6,14}$/.test(String(d.phone||'')))throw Error('INPUT_INVALID');
-   if(state==='connected')throw Error('ALREADY_CONNECTED');await close();config={apiId,apiHash};phone=d.phone;client=await adapter(config);state='connecting';await client.connect();const sent=await client.sendCode(phone);codeHash=sent.phoneCodeHash;expires=now()+10*60000;state='code';return
+   if(state==='connected')throw Error('ALREADY_CONNECTED');await close();config={apiId,apiHash};phone=d.phone;client=await openAdapter(config);state='connecting';await client.connect();const sent=await client.sendCode(phone);codeHash=sent.phoneCodeHash;expires=now()+10*60000;state='code';return
   }
   if(d.action==='code'||d.action==='password'){
    if(!client||now()>expires){state='disconnected';throw Error('PHONE_CODE_EXPIRED')}
@@ -75,7 +87,7 @@ export function createTelegramService({DB,secret,origin,adapter=telegramAdapter,
    await save();config.session=client.session();await activate();return
   }
   throw Error('INPUT_INVALID');
- }catch(e){error=e.message==='INPUT_INVALID'?'Check the fields and try again.':e.message==='ALREADY_CONNECTED'?'Disconnect before switching accounts.':safeError(e);if(!['code','password','connected'].includes(state))state='error';throw Error(error)}finally{busy=false}}
+ }catch(e){error=e.message==='INPUT_INVALID'?'Check the fields and try again.':e.message==='ALREADY_CONNECTED'?'Disconnect before switching accounts.':safeError(e);if(!client||!['code','password','connected'].includes(state))state='error';if(state==='error')nextRetry=now()+60000;throw Error(error)}finally{busy=false}}
  async function route(request){const u=new URL(request.url),json=(d,status=200)=>Response.json(d,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
   if(request.headers.get('sec-fetch-site')==='cross-site')return json({error:'Open this page from Market Radar.'},403);
   if(request.method==='GET')return json(status());

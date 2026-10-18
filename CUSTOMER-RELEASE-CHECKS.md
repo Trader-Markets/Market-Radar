@@ -113,3 +113,9 @@ Users can enter up to 500 characters of their own japa, record it, or use a clea
 Saint/temple mode accepts a single YouTube recording link and uses its original embedded player with controls, autoplay off and single-video repeat configured. Up to 12 chosen links can be saved in this browser. This is original-source playback, not saint voice cloning, historical voice reconstruction or a claim of verified speaker identity. Real provider playback, availability, ads, live streams and embedding permissions remain provider-dependent. No recording is loaded until explicitly selected/loaded. Leaving provider mode removes the iframe.
 
 References checked on 2026-10-18: holy-bhagavad-gita.org/chapter/9/verse/22/ and /34/; vedabase.io/en/library/sb/10/21/5/; /bs/5/1/; /cc/adi/3/40/; developers.google.com/youtube/player_parameters. Temple links: mandirshrigovinddevjijaipur.org and radhavallabhmandir.com. No live recording is preselected, fabricated or represented as endorsed by a temple.
+
+## Saint recordings — 2026.10.18.saints.8
+Named published recording presets for Premanand Maharaj, Srila Prabhupada and Ramesh Baba Ji. Premanand/Ramesh presets are clearly labelled satsang; Prabhupada is group japa. Native archive audio has repeat, explicit play, error fallback and source-switch cleanup. Provider availability and actual browser sound are not certified by automated DOM tests. No voice cloning.
+
+## Telegram reconnect repair — telegram.9
+Bounded Telegram requests release busy after stalled transport; saved-session retry retains encrypted login. Mock regression reproduces stalled message fetch and verifies retry, channel feed recovery, and preserved vault. Real user network/session requires local verification.

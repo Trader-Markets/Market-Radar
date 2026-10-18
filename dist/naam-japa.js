@@ -29,7 +29,7 @@
  function interrupt(next='stopped'){
   ++generation;clearTimers();state=next;
   if(utterance&&synth){utterance.onend=utterance.onerror=utterance.onstart=null;synth.cancel();utterance=null;}
-  audio.pause();$('japaVideoHost').innerHTML='';controls();
+  audio.pause();$('japaVideoHost').querySelectorAll('audio,video').forEach(media=>media.pause());$('japaVideoHost').innerHTML='';$('japaOriginalVideo').hidden=true;controls();
  }
  function stop(){interrupt();try{audio.currentTime=0}catch{}message('Stopped. Press Play whenever you are ready.')}
  function pause(){if(!['playing','starting'].includes(state))return;interrupt('paused');message($('japaSource').value!=='voice'?'Paused. Press Resume to continue.':'Paused. Resume starts the mantra again.')}
@@ -81,6 +81,24 @@
  function drawRecordings(){const select=$('japaSavedRecording');select.innerHTML='';const blank=document.createElement('option');blank.value='';blank.textContent='Choose a saved recording';select.append(blank);savedRecordings.forEach((r,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=r.title;select.append(o)})}
  try{const stored=JSON.parse(localStorage.getItem('radar.japaRecordings')||'[]');savedRecordings=Array.isArray(stored)?stored.filter(r=>r&&typeof r.id==='string'&&/^[A-Za-z0-9_-]{11}$/.test(r.id)&&typeof r.title==='string').slice(0,12).map(r=>({id:r.id,title:r.title.slice(0,100)})):[]}catch{}
  function loadRecording(){try{const id=videoId($('japaVideoUrl').value.trim()),title=$('japaRecordingTitle').value.trim().slice(0,100)||'My devotional recording';interrupt();const frame=document.createElement('iframe');frame.title=title+' · original recording';frame.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=0&controls=1&playsinline=1&loop=1&playlist='+id;frame.allow='encrypted-media; picture-in-picture; fullscreen';frame.referrerPolicy='strict-origin-when-cross-origin';frame.setAttribute('allowfullscreen','');$('japaVideoHost').append(frame);const link=$('japaOriginalVideo');link.href='https://www.youtube.com/watch?v='+id;link.hidden=false;message('Recording loaded. Press Play inside the video. Repeat is configured; playback depends on the recording provider.')}catch(error){message(error.message,true)}}
+ const saintRecordings={
+  premanand:{title:'Shri Premanand Maharaj · naam japa guidance',id:'0H8xTpzhx8M',source:'https://www.youtube.com/watch?v=0H8xTpzhx8M',note:'Bhajan Marg · spoken satsang about the pace of naam japa. This is not a continuous Radha chant.'},
+  prabhupada:{title:'Srila Prabhupada · Hare Krishna group japa',audio:'https://harekrishnatemple.com/audio/prabhupada-group-japa.mp3',source:'https://harekrishnatemple.com/chapter7.html',note:'Hare Krishna Temple archive · Srila Prabhupada leading group japa (39:18). Original published recording; repeats after the full recording.'},
+  ramesh:{title:'Shri Ramesh Baba Ji · Bhagwan Naam',id:'uY3XMvQSYX4',source:'https://www.youtube.com/watch?v=uY3XMvQSYX4',note:'Maan Mandir · Bhagwan Naam satsang by Shri Ramesh Baba Ji. Spoken teaching, not uninterrupted kirtan.'}
+ };
+ $('japaSaintChoice').addEventListener('change',()=>{
+  interrupt();const key=$('japaSaintChoice').value,r=Object.hasOwn(saintRecordings,key)?saintRecordings[key]:null;
+  $('japaSaintSource').hidden=!r;$('japaVideoUrl').value='';$('japaRecordingTitle').value='';
+  $('japaSaintDescription').textContent=r?.note||'Paste your preferred YouTube recording below, then load it.';
+  if(!r){message('Choose or paste your recording.');return}
+  $('japaSaintSource').href=r.source;$('japaRecordingTitle').value=r.title;
+  if(r.id){$('japaVideoUrl').value=r.source;loadRecording();return}
+  const player=document.createElement('audio');player.controls=true;player.loop=true;player.autoplay=false;player.preload='none';player.src=r.audio;player.setAttribute('aria-label',r.title);player.style.width='100%';
+  player.addEventListener('error',()=>message('This archive recording is unavailable. Open the recording source, or choose another recording.',true));
+  player.addEventListener('playing',()=>message('Playing Srila Prabhupada group japa · repeat is on.'));
+  player.addEventListener('pause',()=>{if(player.isConnected)message('Recording paused. Use its Play control to resume.')});
+  $('japaVideoHost').append(player);message('Group japa ready. Press Play in the audio player. Repeat is on.');
+ });
  $('japaLoadVideo').addEventListener('click',loadRecording);
  $('japaSaveVideo').addEventListener('click',()=>{try{const id=videoId($('japaVideoUrl').value.trim()),title=$('japaRecordingTitle').value.trim().slice(0,100)||'My devotional recording';if(savedRecordings.length>=12&&!savedRecordings.some(r=>r.id===id))throw Error('Your library has 12 recordings. Clear it before adding more.');const next=[{id,title},...savedRecordings.filter(r=>r.id!==id)];localStorage.setItem('radar.japaRecordings',JSON.stringify(next));savedRecordings=next;drawRecordings();message('Recording link saved in this browser.')}catch(error){message(error.message||'Browser storage is unavailable.',true)}});
  $('japaSavedRecording').addEventListener('change',()=>{const value=$('japaSavedRecording').value;if(value==='')return;const r=savedRecordings[Number(value)];if(!r)return;$('japaRecordingTitle').value=r.title;$('japaVideoUrl').value='https://www.youtube.com/watch?v='+r.id;loadRecording()});
