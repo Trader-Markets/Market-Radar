@@ -1,0 +1,59 @@
+# Customer release candidate — 18 October 2026
+
+## Result
+
+37 automated test files passed after the repairs below. The build completed successfully. This is a release candidate for customer acceptance testing; automated fixtures do not establish that every live broker, provider entitlement, or Windows computer is working.
+
+## Reproduced defects repaired in this pass
+
+1. A failed quote request for an old Indian instrument could overwrite the newly selected instrument's screen. Requests now carry a view and instrument revision; old successes and failures are ignored, including an A → B → A switch.
+2. A failed older scan could clear newer strategy results. Scan replies and button state now belong to their own request revision.
+3. Repeated account-refresh clicks could launch overlapping requests. Refresh is disabled while the current request is running.
+4. Late FYERS login/setup responses could modify another tab or access removed form fields. UI changes are restricted to the originating view, and secret fields are cleared using their original form element.
+5. Malformed saved Indian alerts could crash the alerts tab. The app validates and bounds saved rules before rendering or checking them.
+6. A broker quote marked fresh on the server could arrive too late and trigger a browser alert. The browser rechecks its timestamp, price and age before triggering; old or future quotes cannot trigger.
+
+## Automated coverage
+
+| Area | Verification |
+| --- | --- |
+| Crypto scanner | Layered strategy checks, closed candles, volume, freshness, gaps, fakeout rejection rules, separate sweep checks and bounded Top 20 volume scanner |
+| Trading | Demo flow, sizing, leverage/price increments, explicit order review, duplicate submission guards, stale-price protection, stop/target validation and displayed positions |
+| Connections | Owner isolation, encrypted storage, persistence across restart, permission/IP error handling, disconnect behavior and relay authentication |
+| Performance & learnings | Ledger reconciliation, separate currencies, calendar and duration selection, 90/180/365-day windows, bounded/resumable imports, malformed execution recovery and historical chart-review evidence |
+| Global markets | Widget sizing, source configuration, CFD labels, index directory, screeners, AI watchlist/filter state, error recovery and workspace separation |
+| Indian markets | FYERS auth/state/replay checks, overview/partial quotes, instrument presets, unavailable fields, stale timestamps, closed-candle checks and request races |
+| Telegram | Local sign-in, two-step flow, encrypted session restore, channel isolation, formatted text, safe links, photos/albums, image access limits, edits/deletes and failed-feed labels |
+| Alerts | Custom conditions, active-trade tracking, paused settings, title-only formatting, deduplication, provider failures and unknown delivery state |
+| Windows startup | Old-server conflict detection, retry guidance and current-version reuse before opening account storage |
+
+Tests use simulated exchange and notification responses. They do not place real orders or send real WhatsApp messages.
+
+## Read-only live checks during this pass
+
+- Delta India public ticker endpoint: HTTP 200, successful response, 237 returned ticker records.
+- Delta India BTCUSD 5-minute candle endpoint: HTTP 200, successful response, 96 candle records. The latest source candle began approximately 124 seconds before the check. Forming candles are not confirmation evidence.
+- Shark public exchange information endpoint: HTTP 200, 2 market entries and 343 contract entries.
+- These checks verify public source reachability and response structure at the check time. They do not verify every instrument, account authentication, order execution, or future uptime.
+
+The sampled hosted logs showed protected-route 403 access rejections and canceled public requests; no internal exception was identified in that returned sample. Missing visitor identity continues to be rejected. Authentication and owner isolation were not weakened.
+
+## Customer acceptance still required
+
+- First launch on the customer's Windows computer, browser layout and embedded TradingView content.
+- The customer's Delta/Shark/FYERS API permissions, IP allowlist, private balances, positions and history reconciliation against their broker.
+- Any real-order lifecycle, including exchange acknowledgement and protective stop/target persistence. No live-money test was performed.
+- WhatsApp provider acceptance and actual device delivery; no live message was sent by this validation.
+- Telegram image/download latency and session restore using the customer's own authorized account.
+
+## Product scope that must remain clear
+
+- Indian market order placement is not implemented; this section provides broker data, chart plans and checks, with a link to FYERS for execution.
+- Global equities/indices currently use provider widgets. Exchange licensing can cause delayed or unavailable quotes. The widgets do not supply an API for the app's own global strategy scanner.
+- Public reference rows marked CFD can differ from the official cash index. They are not labelled as official cash-index values.
+- The hosted Site is owner-private; local and hosted account storage are separate. This is not a hosted multi-customer broker service.
+- Local background work stops if the server exits or the computer sleeps. No zero-delay or guaranteed-trade-outcome claim is made.
+
+## Install this candidate
+
+Close the old Market Radar terminal window, extract the new ZIP, and open Start Market Radar.cmd. Existing saved local accounts and history live outside the extracted program folder and are retained. Use the old-server warning to close a conflicting older process before retrying.
