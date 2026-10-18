@@ -1,41 +1,26 @@
-# Market Radar
+# Breakout Radar / Market Radar
 
-Delta Exchange India and Shark Exchange radar with four strategies: 1H high-volume breakouts, five-timeframe breakout watch, 4H 200 EMA consolidation, and golden/death crosses.
+Personal market scanner and trading workspace for Delta Exchange India and Shark Exchange, with separate stocks/indices tools, performance calendars, trade learnings, custom alerts, and Telegram news.
 
-## Run locally
+## Run on Windows
 
-Requires Node.js 24 and Python 3. Install dependencies and build:
+Install Node.js 24 or later. Download this repository as a ZIP, extract it, and open **Start Market Radar.cmd**. First launch installs pinned Telegram dependencies from npm. The launcher detects an older server on port 8787 and asks you to close its terminal window before retrying.
 
-```bash
-npm ci
-npm run build
-node local-trading.mjs
-```
+Open `http://localhost:8787`. Telegram setup is at `/telegram-connect`; incoming posts appear in **Setups → News**. Join @lmwmnews in Telegram first, then enter your own API ID/hash, phone number, login code, and optional two-step password in the local setup page. Photos and captions are displayed with source formatting; albums are grouped. Video, unsupported media, and oversized images link to the original Telegram post. Delivery depends on Telegram and network conditions; the screen checks its local feed every second while visible.
 
-Open http://localhost:8787. On Windows, use `Start Market Radar.cmd` after building.
+## Development
 
-## Tests
+- `npm ci`
+- `npm test`
+- `python build-worker.py` (rebuild embedded assets and Worker)
+- `node local-trading.mjs --open`
 
-```bash
-for test in tests/*.mjs; do node "$test" || exit 1; done
-```
+SQLite uses Node's built-in `node:sqlite`. Exchange credentials and Telegram sessions are encrypted in the local user's data directory, outside this source tree. Never commit `.env` files, keys, databases, sessions, account exports, or logs. Withdrawal routes are not implemented. Tests simulate exchange operations; tests do not place trades or send provider messages.
 
-## Source map
+## Hosted Site
 
-- `dist/index.html`, `dist/app.js`, `dist/signals.js`: editable frontend and strategy source.
-- `delta-desk.js`, `shark-desk.js`: exchange account and reviewed-order handlers.
-- `build-worker.py`: packages frontend and handlers into `dist/server/index.js`.
-- `local-trading.mjs`, `local-store.mjs`: local HTTP server and encrypted account persistence.
-- `db/`, `drizzle/`: database schema and migrations.
-- `dist/vendor/`: bundled chart and socket libraries with licenses.
-- `tests/`: strategy, risk, account, order, alert and position tests.
+The owner-private Site and the local Windows application are separate runtimes. Telegram account sessions and photo downloads remain on the local computer. Hosted news provides only a best-effort public preview; signing in locally does not stream the feed to the hosted Site. See `TELEGRAM-LOCAL.md` for setup and limitations.
 
-See `LOCAL-TRADING.md` for setup details and `VALIDATION.md` for tested behavior and limitations.
+## Source and third-party notices
 
-## Data and charts
-
-TradingView advanced embed and an exchange-fed TradingView Lightweight Charts view with automatic strategy levels. Literal zero delay is not guaranteed. MTF uses the highest loaded daily price; lifetime ATH is unverified. Scans and alerts require the browser to remain open. No withdrawal action is provided.
-
-## Deployment
-
-`.openai/hosting.json` identifies the existing ChatGPT Site. For an independent deployment, replace this project binding with your own configuration. Hosted account routes require the configured owner identity and session encryption secret; never commit these runtime values or account databases. Credentials are entered in the application, never in source code.
+This repository includes application source, generated Worker output, schema/migrations, regression tests, and vendored client libraries with their notices in `dist/vendor/`. No live credentials or user trading records belong in this repository.

@@ -15,6 +15,55 @@
       "when": 1790503513473,
       "tag": "0001_powerful_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790832343680,
+      "tag": "0002_calm_natasha_romanoff",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790877830474,
+      "tag": "0003_gifted_doomsday",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791281982711,
+      "tag": "0004_absurd_namora",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791480370505,
+      "tag": "0005_thankful_thunderbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792067105708,
+      "tag": "0006_fyers_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792156928789,
+      "tag": "0007_learning_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792179189743,
+      "tag": "0008_high_diamondback",
+      "breakpoints": true
     }
   ]
 }

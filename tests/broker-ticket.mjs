@@ -12,3 +12,4 @@ values.ticketAmount='1000';assert.equal(ctx.plan().v.loss,12);
 values.ticketAmount='100';values.ticketLeverage='200';assert.match(ctx.plan().error,/valid leverage/);
 values.ticketLeverage='2';values.ticketStop='101';assert.match(ctx.plan().error,/stop goes below/);
 console.log('PASS: broker value, margin, risk calculation, leverage and stop validation');
+values.ticketStop='99';rules.tick=.5;values.ticketEntry='100.1';assert.match(ctx.plan().error,/price increments/);values.ticketEntry='100';assert(!ctx.plan().error);

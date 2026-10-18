@@ -1,0 +1,15 @@
+# Telegram news on Windows
+
+Close the old Market Radar server window. Extract the new ZIP to a new folder and run Start Market Radar.cmd. Node.js 24 or later is required. The first launch installs the pinned Telegram client dependencies from npm and needs internet access.
+
+The launcher opens the Telegram connection screen automatically. If an older server is still using port 8787, it stops and tells you to close that old terminal window before retrying. Closing a browser tab does not stop the old server. You can also open Setups → News → Connect / manage Telegram. Enter your API ID, API hash, and phone number with country code. Enter the code received in Telegram, and your two-step verification password if requested. Do not enter login codes in ChatGPT. Your account must already be subscribed to @lmwmnews.
+
+The reader accepts only @lmwmnews posts. It receives new and edited channel posts, removes deleted posts, and retrieves the latest 50 posts at startup and periodically to recover gaps. Original text, supported formatting, captions, photos and image albums are displayed. Unsupported media links to Telegram. Photo downloads are restricted to the most recent 50 channel posts, limited to 5 MiB per image, and kept in a 20 MiB in-memory cache; they are not saved in the repository. The screen checks the local feed every second, without making a Telegram history request every second. Telegram and network latency remain possible; this is not a zero-delay guarantee. No generated summaries, trade instructions or automatic news risk labels are added.
+
+API credentials and the authorized Telegram session are AES-GCM encrypted in the existing local database; on Windows its key is protected with the Windows user DPAPI vault. Login codes and two-step passwords are not saved. No Telegram credentials are embedded in this package or sent to the hosted Site. The session has Telegram account-level authority, although this application's reader restricts its operations to channel reads. Disconnect removes the local encrypted session and stops reading; revoke its authorization in Telegram Settings → Devices if needed.
+
+Keep this computer awake and the Market Radar server window running. Closing the browser does not close the Telegram connection. Closing the server or shutting down the computer stops it; reopening restores the saved connection and retrieves recent posts. The hosted Site's public preview is separate and does not receive this local session or these updates.
+
+Existing exchange accounts and trade history remain in the Windows user's MarketRadar data directory, outside the extracted program folder. Never delete that data directory to update the program.
+
+Validation: 36 automated test files passed, including simulated login, two-step verification, encrypted restore, channel isolation, edits/deletes, and cross-origin rejection. The Telegram adapter imports and initializes successfully. Live Telegram login, delivery latency, and Windows execution require verification on the user's computer.

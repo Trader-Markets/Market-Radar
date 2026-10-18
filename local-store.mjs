@@ -23,6 +23,6 @@ export function createLocalStore(directory=join(process.env.LOCALAPPDATA||homedi
  for(const file of readdirSync(migrations).filter(x=>x.endsWith('.sql')).sort())if(!sqlite.prepare('SELECT name FROM _radar_migrations WHERE name=?').get(file)){
   sqlite.exec('BEGIN');try{sqlite.exec(readFileSync(join(migrations,file),'utf8'));sqlite.prepare('INSERT INTO _radar_migrations(name) VALUES(?)').run(file);sqlite.exec('COMMIT')}catch(e){sqlite.exec('ROLLBACK');throw e}
  }
- const DB={prepare(sql){return {bind(...args){const statement=sqlite.prepare(sql);return {run:async()=>({meta:{changes:statement.run(...args).changes}}),first:async()=>statement.get(...args)??null}}}}};
+ const DB={prepare(sql){return {bind(...args){const statement=sqlite.prepare(sql);return {run:async()=>({meta:{changes:statement.run(...args).changes}}),first:async()=>statement.get(...args)??null,all:async()=>({results:statement.all(...args)})}}}}};
  return {DB,secret,close:()=>sqlite.close()};
 }

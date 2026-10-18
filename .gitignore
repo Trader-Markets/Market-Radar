@@ -1,9 +1,14 @@
+
 node_modules/
 *.tar.gz
+
+.*-test-*/
 .env
 .env.*
-!.env.example
 *.sqlite
 *.sqlite-*
-key
-key.dpapi
+*.db
+*.db-*
+*.dpapi
+accounts/
+backups/

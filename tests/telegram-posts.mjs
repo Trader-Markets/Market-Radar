@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {parseHTML} from 'linkedom';
+await import('../dist/telegram-posts.js');
+const {renderText,renderFeed}=globalThis.TelegramPosts;
+let html=renderText('😀 Bold & link',[{type:'bold',offset:3,length:4},{type:'textUrl',offset:10,length:4,url:'https://example.test/path?a=1&b=2'}]);assert.match(html,/<strong>Bold<\/strong>/);assert.match(html,/&amp;/);let {document}=parseHTML('<main>'+html+'</main>');assert.equal(document.querySelector('a').getAttribute('href'),'https://example.test/path?a=1&b=2');
+html=renderText('<script>x</script>',[{type:'textUrl',offset:0,length:18,url:'javascript:alert(1)'}]);assert.ok(!html.includes('<script>'));assert.ok(!html.includes('<a '));
+assert.equal(renderText('abc',[{type:'bold',offset:-1,length:4},{type:'bold',offset:0,length:10}]),'abc');
+const posts=[{id:2,title:'caption',groupedId:'123',url:'https://t.me/lmwmnews/2',at:'2026-10-17T14:00:00Z',entities:[{type:'bold',offset:0,length:7}],media:{kind:'photo',url:'/api/telegram-media/2?v=22'}},{id:1,title:'',groupedId:'123',url:'https://t.me/lmwmnews/1',at:'2026-10-17T14:00:00Z',media:{kind:'photo',url:'/api/telegram-media/1?v=11'}}];
+({document}=parseHTML('<main>'+renderFeed(posts)+'</main>'));assert.equal(document.querySelectorAll('.telegram-post').length,1);assert.equal(document.querySelectorAll('img').length,2);assert.equal(document.querySelector('img').getAttribute('src'),'/api/telegram-media/1?v=11');assert.ok(document.querySelector('.telegram-album'));assert.equal(document.querySelector('.telegram-post-text strong').textContent,'caption');
+posts[0].media.url='https://untrusted.test/image';assert.equal((renderFeed(posts).match(/<img /g)||[]).length,1);
+console.log('PASS Telegram text/entities, UTF-16 emoji offsets, exact captions, album order, safe links, escaped content and local-only image URLs');

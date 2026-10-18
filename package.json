@@ -11,5 +11,8 @@
     "drizzle-kit": "0.31.4",
     "drizzle-orm": "0.44.5",
     "linkedom": "0.18.12"
+  },
+  "dependencies": {
+    "telegram": "2.26.22"
   }
 }

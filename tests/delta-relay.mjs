@@ -1,0 +1,33 @@
+import {createRelay} from '../deploy/delta-relay/server.mjs';
+import assert from 'node:assert/strict';
+import {randomUUID,webcrypto} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const token='x'.repeat(40),calls=[];
+const server=createRelay({token,upstream:async(url,opts)=>{calls.push({url,opts});return Response.json({success:true,result:[]})}});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));
+try{
+ const base='http://127.0.0.1:'+server.address().port;
+ const headers=()=>({authorization:'Bearer '+token,'api-key':'test-key',signature:'a'.repeat(64),timestamp:String(Math.floor(Date.now()/1000)),'x-radar-request-id':randomUUID()});
+ assert.equal((await fetch(base+'/v2/orders')).status,401);
+ assert.equal((await fetch(base+'/v2/withdrawals',{method:'POST',headers:headers()})).status,403);
+ const h=headers();assert.equal((await fetch(base+'/v2/orders?states=open',{headers:h})).status,200);
+ assert.equal(calls[0].url,'https://api.india.delta.exchange/v2/orders?states=open');
+ assert.equal(calls[0].opts.headers.authorization,undefined);
+ assert.equal(calls[0].opts.redirect,'error');
+ assert.equal((await fetch(base+'/v2/orders?states=open',{headers:h})).status,409);
+ assert.equal((await fetch(base+'/v2/orders',{headers:{...headers(),timestamp:'1'}})).status,400);
+ assert.equal(calls.length,1);
+ const signed=[];const context=vm.createContext({crypto:webcrypto,TextEncoder,TextDecoder,Response,URL,AbortSignal,Date,fetch:async(url,opts)=>{signed.push({url,opts});return Response.json({success:true,result:[]})}});
+ vm.runInContext(readFileSync('delta-desk.js','utf8'),context);
+ await vm.runInContext("deltaCall(deltaTransport({key:'key-test',secret:'secret-test',relay:{url:'https://evil.test'}},{DELTA_RELAY_URL:'https://relay.example',DELTA_RELAY_TOKEN:'"+token+"'}),'GET','/v2/positions/margined')",context);
+ assert.equal(signed[0].url,'https://relay.example/v2/positions/margined');
+ assert.equal(signed[0].opts.headers.authorization,'Bearer '+token);
+ assert.ok(!JSON.stringify(signed[0]).includes('secret-test'));
+ await vm.runInContext("deltaCall(deltaTransport({key:'key-test',secret:'secret-test',relay:{url:'https://evil.test'}},{}),'GET','/v2/positions/margined')",context);
+ assert.equal(signed[1].url,'https://api.india.delta.exchange/v2/positions/margined');
+ assert.throws(()=>vm.runInContext("deltaTransport({key:'k',secret:'s'},{DELTA_RELAY_URL:'http://unsafe.example',DELTA_RELAY_TOKEN:'"+token+"'})",context));
+ context.fetch=async()=>Response.json({success:false,error:{code:'NETWORK_UNKNOWN'}},{status:502});
+ await assert.rejects(()=>vm.runInContext("deltaCall({key:'k',secret:'s'},'POST','/v2/orders','',{size:1})",context),/^Error: NETWORK_UNKNOWN:/);
+ console.log('PASS fixed-IP route authentication, replay/stale protection, route allowlist, no secret forwarding, server-only configuration and unchanged direct mode');
+}finally{await new Promise(r=>server.close(r));}

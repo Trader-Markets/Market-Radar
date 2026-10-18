@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {parseHTML} from 'linkedom';
+import worker from '../dist/server/index.js';
+await import('../dist/telegram-posts.js');
+const app=fs.readFileSync('dist/app.js','utf8'),script=app.slice(app.indexOf('// Telegram content is displayed'));
+const flush=()=>new Promise(r=>setImmediate(r));
+async function mount(local,data){const {document}=parseHTML('<html><body><div class="news"></div></body></html>');let timer,calls=0,result=data;const context={TelegramPosts:globalThis.TelegramPosts,document,location:{hostname:local?'localhost':'radar.test'},$:id=>document.getElementById(id),esc:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),fetch:async()=>{calls++;if(result instanceof Error)throw result;return {ok:true,json:async()=>result}},setInterval:(f,delay)=>timer={f,delay},AbortSignal,Date};vm.runInNewContext(script,context);await flush();return {document,timer,get calls(){return calls},setResult:d=>result=d}}
+let d={available:false,articles:[],error:'preview blocked'};const hosted=await mount(false,d);assert.equal(hosted.document.querySelector('a.telegram-primary').textContent,'Set up Telegram news');assert.equal(hosted.document.querySelector('a.telegram-primary').getAttribute('href'),'/telegram-connect');assert.ok(hosted.document.querySelector('a[href="http://localhost:8787/telegram-connect"]'));assert.equal(hosted.timer.delay,60000);assert.doesNotMatch(hosted.document.body.textContent,/No posts received yet/);assert.match(hosted.document.getElementById('telegramStatus').textContent,/Public preview unavailable/);
+const local=await mount(true,{local:true,state:'disconnected',available:false,articles:[]});assert.equal(local.timer.delay,1000);assert.match(local.document.getElementById('telegramStatus').textContent,/Click Connect/);
+local.setResult({local:true,available:true,articles:[{title:'<script>evil()</script> full news',url:'https://t.me/lmwmnews/4',at:'2026-10-17T14:00:00Z'},{title:'bad',url:'https://evil.test',at:'2026-10-17T14:00:00Z'}]});await local.timer.f();assert.equal(local.document.querySelectorAll('.telegram-post').length,1);assert.equal(local.document.querySelector('script'),null);assert.match(local.document.querySelector('.telegram-post').textContent,/full news/);
+local.setResult({local:true,available:false,state:'error',error:'Network offline',articles:[{title:'saved',url:'https://t.me/lmwmnews/4',at:'2026-10-17T14:00:00Z'}]});await local.timer.f();assert.match(local.document.getElementById('telegramStatus').textContent,/Showing posts from the last successful/);
+local.setResult({});await local.timer.f();assert.match(local.document.getElementById('telegramStatus').textContent,/interrupted/);assert.equal(local.document.querySelectorAll('.telegram-post').length,1);
+local.document.hidden=true;const count=local.calls;await local.timer.f();assert.equal(local.calls,count);
+for(const path of ['/telegram-connect','/telegram-connect/']){const response=await worker.fetch(new Request('https://radar.test'+path),{});assert.equal(response.status,200);const html=await response.text();assert.match(html,/Open Telegram connection screen/);assert.doesNotMatch(html,/<input/);assert.equal(response.headers.get('cache-control'),'no-store')}
+console.log('PASS hosted setup discovery and guide routes, local 1s refresh, disconnected/stale/error states, safe text, URL validation and hidden-tab pause');

@@ -29,3 +29,10 @@ assert.equal(F.plan(F.edit(manual,{stop:105})),null);
 assert.equal(F.plan(F.edit(manual,{entry:NaN})),null);
 assert.ok(F.plan(F.edit(manual,{side:-1,stop:105,target:90})));
 console.log('PASS customer flow: confirmations, price/account freshness, symbol isolation, draft edits and accepted-order clearing');
+assert.equal(F.roundPrice(100.26,.5),100.5);
+assert.equal(F.roundPrice(.00001327,.0000001),.0000133);
+let aligned=F.strategy(F.create('delta','BTCUSD'),{entry:100.26,stop:95.12,target:110.24,side:1,confirmed:true},now,now+1000,.5);
+assert.equal(aligned.entry,100.5);assert.equal(aligned.stop,95);assert.equal(aligned.target,110);
+assert.ok(F.plan(aligned));
+
+assert.match(F.gate(draft,{...ready,price:94}),/breached its stop/);assert.match(F.gate(draft,{...ready,price:110}),/reached its target/);

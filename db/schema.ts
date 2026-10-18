@@ -1,4 +1,21 @@
-import {sqliteTable,text,integer,index} from 'drizzle-orm/sqlite-core';
+import {sqliteTable,text,integer,index,primaryKey} from 'drizzle-orm/sqlite-core';
 export const sessions=sqliteTable('trade_sessions',{id:text('id').primaryKey(),owner:text('owner').notNull(),cipher:text('cipher').notNull(),expires:integer('expires').notNull(),trading:integer('trading').notNull()});
 export const sharkSessions=sqliteTable('shark_sessions',{id:text('id').primaryKey(),owner:text('owner').notNull(),cipher:text('cipher').notNull(),expires:integer('expires').notNull(),trading:integer('trading').notNull()});
 export const intents=sqliteTable('trade_intents',{id:text('id').primaryKey(),owner:text('owner').notNull(),session:text('session').notNull(),symbol:text('symbol').notNull(),payload:text('payload').notNull(),status:text('status').notNull(),expires:integer('expires').notNull(),result:text('result')},t=>[index('intents_owner_symbol_status').on(t.owner,t.symbol,t.status)]);
+
+export const whatsappSettings=sqliteTable('whatsapp_settings',{owner:text('owner').primaryKey(),cipher:text('cipher').notNull(),enabled:integer('enabled').notNull(),forming:integer('forming').notNull(),updates:integer('updates').notNull(),lastAt:integer('last_at').notNull().default(0)});
+export const whatsappEvents=sqliteTable('whatsapp_events',{id:text('id').primaryKey(),owner:text('owner').notNull(),status:text('status').notNull(),createdAt:integer('created_at').notNull()});
+export const demoAccounts=sqliteTable('demo_accounts',{owner:text('owner').primaryKey(),payload:text('payload').notNull(),version:integer('version').notNull().default(0)});
+export const backgroundScans=sqliteTable('background_scans',{id:text('id').primaryKey(),payload:text('payload').notNull(),updatedAt:integer('updated_at').notNull()});
+export const tradeMonitors=sqliteTable('trade_monitors',{id:text('id').primaryKey(),owner:text('owner').notNull(),payload:text('payload').notNull(),active:integer('active').notNull().default(1),updatedAt:integer('updated_at').notNull()},t=>[index('monitor_owner_updated').on(t.owner,t.updatedAt)]);
+export const tradeMonitorEvents=sqliteTable('trade_monitor_events',{id:text('id').primaryKey(),owner:text('owner').notNull(),payload:text('payload').notNull(),createdAt:integer('created_at').notNull()},t=>[index('monitor_events_owner_created').on(t.owner,t.createdAt)]);
+
+export const customAlerts=sqliteTable('custom_alerts',{id:text('id').primaryKey(),owner:text('owner').notNull(),payload:text('payload').notNull(),enabled:integer('enabled').notNull().default(1),version:integer('version').notNull().default(0),updatedAt:integer('updated_at').notNull()},t=>[index('custom_alert_owner_updated').on(t.owner,t.updatedAt)]);
+
+export const marketConnections=sqliteTable('market_connections',{owner:text('owner').notNull(),broker:text('broker').notNull(),cipher:text('cipher').notNull(),updated:integer('updated').notNull()},t=>[primaryKey({columns:[t.owner,t.broker]})]);
+
+export const learningJobs=sqliteTable('learning_jobs',{id:text('id').primaryKey(),owner:text('owner').notNull(),account:text('account').notNull(),payload:text('payload').notNull(),updated:integer('updated').notNull(),busyUntil:integer('busy_until').notNull().default(0)},t=>[index('learning_jobs_owner').on(t.owner,t.account,t.updated)]);
+export const learningRecords=sqliteTable('learning_records',{owner:text('owner').notNull(),account:text('account').notNull(),kind:text('kind').notNull(),recordId:text('record_id').notNull(),at:integer('at').notNull(),payload:text('payload').notNull()},t=>[primaryKey({columns:[t.owner,t.account,t.kind,t.recordId]}),index('learning_records_range').on(t.owner,t.account,t.at)]);
+export const learningNotes=sqliteTable('learning_notes',{owner:text('owner').notNull(),account:text('account').notNull(),orderId:text('order_id').notNull(),label:text('label').notNull(),note:text('note').notNull(),updated:integer('updated').notNull()},t=>[primaryKey({columns:[t.owner,t.account,t.orderId]})]);
+
+export const learningChartReviews=sqliteTable('learning_chart_reviews',{owner:text('owner').notNull(),account:text('account').notNull(),jobId:text('job_id').notNull(),reviewKey:text('review_key').notNull(),at:integer('at').notNull(),payload:text('payload').notNull(),updated:integer('updated').notNull()},t=>[primaryKey({columns:[t.owner,t.account,t.jobId,t.reviewKey]}),index('learning_chart_reviews_range').on(t.owner,t.account,t.jobId,t.at)]);
