@@ -1,5 +1,16 @@
 from pathlib import Path
 import json
+import re
+# Embed one shared presentation layer in every first-party page. No extra asset request.
+ui_css=Path('ui-theme.css').read_text()
+for page in ['dist/index.html','dist/learnings.html','telegram-connect.html','telegram-guide.html']:
+ page_path=Path(page)
+ source=page_path.read_text()
+ source=re.sub(r'<style id="radar-ui-system">.*?</style>', '', source, flags=re.S)
+ theme='<style id="radar-ui-system">'+ui_css+'</style>'
+ # Telegram's compact documents have an implicit head.
+ source=source.replace('</head>',theme+'</head>',1) if '</head>' in source else source.replace('<main>',theme+'<main>',1)
+ page_path.write_text(source)
 desk=Path('telegram-news.js').read_text()+'\n'+Path('delta-desk.js').read_text()+'\n'+Path('performance.js').read_text()+'\n'+Path('learnings.js').read_text()+'\n'+Path('deep-review.js').read_text()+'\n'+Path('fyers.js').read_text()
 shark_desk=Path('shark-desk.js').read_text()
 whatsapp=Path('whatsapp.js').read_text()

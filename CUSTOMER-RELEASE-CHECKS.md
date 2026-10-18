@@ -67,3 +67,14 @@ Close the old Market Radar terminal window, extract the new ZIP, and open Start 
 - Null or malformed API bodies show a retry message rather than a JavaScript property error.
 
 Validation: full 37-file automated suite, including additional DOM regressions. Windows rendering and connected private broker paths remain unverified here; prior acceptance limits still apply.
+
+## Shared UI repair — ui.3
+
+- One shared presentation layer covers dashboard, global markets, Indian markets, performance and Telegram setup pages.
+- Main workspace links and buttons share the same selected state and touch target size; the performance page links directly back to each asset workspace.
+- Trade chart and ticket stack on narrower screens; forms and section navigation use consistent mobile grids.
+- Tables scroll within their own region, with keyboard focus and a small-screen scroll hint. Calendar cells retain readable text in a separately scrollable calendar instead of shrinking to 9–11px.
+- Secondary controls, active tabs, errors, labels, cards and dialogs share readable spacing and contrast.
+- Keyboard focus, skip links, bounded dialogs, wrapping notification titles and reduced-motion styles are included.
+
+Verification: automated DOM navigation and interaction checks, CSS parsing, colour-contrast checks, full test suite and worker build. This environment has no supported browser-rendering path; actual Windows/phone visual acceptance remains outstanding.
