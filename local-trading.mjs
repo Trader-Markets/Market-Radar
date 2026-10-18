@@ -1,5 +1,6 @@
 // Run the same Site worker on loopback. Exchange API requests then leave from this computer.
 import http from 'node:http';
+import {startLocalWatchlist} from './local-background.mjs';
 import {inspectLocalServer,LOCAL_BUILD} from './local-startup.mjs';
 import {readFileSync} from 'node:fs';
 import {createTelegramService} from './local-telegram.mjs';
@@ -20,7 +21,7 @@ if(existing.state==='current'){
  process.exit(0);
 }
 const saved=createLocalStore(process.env.RADAR_DATA_DIR);
-const env={DB:saved.DB,TRADE_OWNER_EMAIL:'local-owner@market-radar.invalid',TRADE_SESSION_SECRET:saved.secret};
+const env={DB:saved.DB,TRADE_OWNER_EMAIL:'local-owner@market-radar.invalid',TRADE_SESSION_SECRET:saved.secret,BACKGROUND_SERVICE_ENABLED:'true'};
 const telegram=createTelegramService({DB:saved.DB,secret:saved.secret,origin});
 const telegramPage=readFileSync(new URL('./telegram-connect.html',import.meta.url));
 const server=http.createServer(async(req,res)=>{
@@ -46,3 +47,5 @@ monitorTimer.unref();server.on('close',()=>clearInterval(monitorTimer));
 let surgeLoopBusy=false;
 const surgeTimer=setInterval(async()=>{if(surgeLoopBusy)return;surgeLoopBusy=true;const headers={origin,'content-type':'application/json','oai-authenticated-user-id':'local-owner','oai-authenticated-user-email':env.TRADE_OWNER_EMAIL};try{const read=await worker.fetch(new Request(origin+'/api/surge',{headers}),env),d=await read.json();if(d.settings?.enabled){const body=d.job&&['rank','scan'].includes(d.job.phase)?{action:'step',id:d.job.id}:{action:'start',exchange:d.settings.exchange,quote:d.settings.quote};if(d.job?.phase!=='failed')await worker.fetch(new Request(origin+'/api/surge',{method:'POST',headers,body:JSON.stringify(body)}),env);}}catch{console.error('Volume scanner unavailable; check its status in Setups.')}finally{surgeLoopBusy=false}},2000);
 surgeTimer.unref();server.on('close',()=>clearInterval(surgeTimer));
+
+const watchlist=startLocalWatchlist({worker,env,origin,onError:()=>console.error('Saved watchlist scan unavailable; check Background alerts in Setups.')});server.on('close',()=>watchlist.stop());

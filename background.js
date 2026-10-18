@@ -17,8 +17,8 @@ async function backgroundRoute(request,env){
  else if(!owner||!env.TRADE_OWNER_EMAIL||email!==env.TRADE_OWNER_EMAIL)return json({error:'Owner sign-in required'},403);
  const q=(sql,...a)=>env.DB.prepare(sql).bind(...a),read=async id=>{let r=await q('SELECT * FROM background_scans WHERE id = ?',id).first();return r?JSON.parse(r.payload):null},save=(id,value)=>q('INSERT INTO background_scans(id,payload,updated_at) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at',id,JSON.stringify(value),Date.now()).run();
  try{
- const settings=await read('settings')??backgroundDefaults;
- if(request.method==='GET'&&!service)return json({settings,last:await read('last'),serviceAvailable:env.BACKGROUND_SERVICE_ENABLED==='true'});
+ const savedSettings=await read('settings'),settings=savedSettings??backgroundDefaults;
+ if(request.method==='GET'&&!service)return json({configured:!!savedSettings,settings,last:await read('last'),serviceAvailable:env.BACKGROUND_SERVICE_ENABLED==='true'});
  if(request.method!=='POST')return json({error:'Method not allowed'},405);
  if(request.headers.get('origin')&&request.headers.get('origin')!==u.origin)return json({error:'Same-origin request required'},403);
  if(!service&&request.headers.get('origin')!==u.origin)return json({error:'Same-origin request required'},403);

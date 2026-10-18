@@ -1,3 +1,7 @@
+# Current release: audit.12 — 19 October 2026
+
+44 automated test files pass. See QA-AUDIT-2026-10-19.md for current scope, repairs and live-verification limits. The entries below retain the earlier release history.
+
 # Customer release candidate — 18 October 2026
 
 ## Result

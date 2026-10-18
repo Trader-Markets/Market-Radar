@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {startLocalWatchlist} from '../local-background.mjs';
+let calls=[],saved={configured:false,settings:{enabled:true}},handler,cleared=false,errorCount=0,release;
+const worker={async fetch(request){calls.push({path:new URL(request.url).pathname,method:request.method,body:request.method==='POST'?await request.json():null});if(request.method==='GET')return Response.json(saved);if(release)return new Promise(resolve=>release.resolve=resolve);return Response.json({completedAt:Date.now()})}};
+const task=startLocalWatchlist({worker,env:{TRADE_OWNER_EMAIL:'owner@test'},origin:'http://localhost:8787',interval(fn,ms){handler=fn;assert.equal(ms,60000);return 1},clear(){cleared=true},onError(){errorCount++}});
+await task.tick();assert.equal(calls.length,1,'defaults do not start an unsaved scanner');
+saved={configured:true,settings:{enabled:false}};await task.tick();assert.equal(calls.filter(x=>x.method==='POST').length,0,'paused settings respected');
+saved.settings.enabled=true;await handler();assert.deepEqual(calls.at(-1),{path:'/api/background/run',method:'POST',body:{deliver:true}});
+saved.last={slot:Math.floor(Date.now()/3600000),completedAt:Date.now()};const before=calls.length;await task.tick();assert.equal(calls.length,before+1,'completed hourly scan not rerun');
+delete saved.last;release={};const first=task.tick();await new Promise(r=>setImmediate(r));const count=calls.length;await task.tick();assert.equal(calls.length,count,'no overlapping scan');release.resolve(Response.json({}));await first;release=null;
+worker.fetch=async()=>{throw Error('offline')};await task.tick();assert.equal(errorCount,1);worker.fetch=async()=>Response.json(saved);await task.tick();
+task.stop();assert.equal(cleared,true);await task.tick();assert.equal(errorCount,1);
+console.log('PASS local saved watchlist: explicit configuration, pause, hourly completion, duplicate suppression, error recovery and shutdown; no live alerts sent');
