@@ -1,3 +1,7 @@
+# Current release: fyers-chart.14 — 19 October 2026
+
+See FYERS-CHART-CAPABILITIES.md for the direct-data chart/search update and explicit feature limits. Full suite: 50/50 runner tests across 47 files.
+
 # Current release: journeys.13 — 19 October 2026
 
 See JOURNEY-FIX-RESULTS.md: four reproduced defects repaired, targeted checks 0/4 → 4/4; full suite 48/48 runner tests across 45 files. These are automated results, not a live customer-journey guarantee.

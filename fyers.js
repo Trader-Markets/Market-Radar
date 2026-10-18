@@ -14,6 +14,18 @@ function fyersQuote(row){
  const v=row?.v||{},number=x=>x===null||x===undefined||x===''?null:Number.isFinite(Number(x))?Number(x):null,n=number(v.lp),raw=number(v.tt),at=raw===null?null:raw>1e12?raw:raw*1000,now=Date.now();
  return {symbol:row?.n||v.symbol||null,price:n!==null&&n>0?n:null,change:number(v.ch),changePercent:number(v.chp),open:number(v.open_price),high:number(v.high_price),low:number(v.low_price),previousClose:number(v.prev_close_price),at:at!==null&&at>0?at:null,valid:row?.s==='ok'&&n!==null&&n>0&&at!==null&&at>0&&now-at<=15000&&at<=now+1000,error:row?.s!=='ok'?'Symbol unavailable':n===null||n<=0?'Price unavailable':null}
 }
+const fyersCatalogCache=new Map();
+const fyersSegments=['NSE_CM','BSE_CM','NSE_FO','BSE_FO','MCX_COM','NSE_CD'];
+function fyersCsv(text){const rows=[];let row=[],value='',quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){value+='"';i++}else quoted=!quoted}else if(!quoted&&(c===','||c==='\n')){row.push(value.replace(/\r$/,''));value='';if(c==='\n'){rows.push(row);row=[]}}else value+=c}if(value||row.length){row.push(value.replace(/\r$/,''));rows.push(row)}return rows}
+async function fyersCatalog(segment){
+ if(!fyersSegments.includes(segment))throw Error('Choose a supported FYERS exchange segment.');
+ const cached=fyersCatalogCache.get(segment);if(cached&&Date.now()-cached.at<3600000)return cached;
+ const response=await fetch('https://public.fyers.in/sym_details/'+segment+'.csv',{signal:AbortSignal.timeout(12000),redirect:'error'});if(!response.ok)throw Error('FYERS instrument directory unavailable (HTTP '+response.status+').');
+ const reader=response.body.getReader(),chunks=[];let size=0;try{while(true){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>20*1024*1024)throw Error('FYERS instrument directory exceeds the supported size.');chunks.push(part.value)}}catch(e){await reader.cancel();throw e}
+ const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}
+ const records=fyersCsv(new TextDecoder().decode(bytes)).filter(r=>/^(NSE|BSE|MCX):[A-Z0-9&._-]{2,65}$/.test(r[9]||'')).map(r=>({symbol:r[9],name:r[1],lot:Number(r[3]),tick:Number(r[4]),expiry:r[8]||null}));if(!records.length)throw Error('FYERS instrument directory returned no supported symbols.');
+ while(fyersCatalogCache.size>=2)fyersCatalogCache.delete(fyersCatalogCache.keys().next().value);const result={at:Date.now(),records};fyersCatalogCache.set(segment,result);return result;
+}
 async function fyersRoute(request,env){
  const u=new URL(request.url),owner=request.headers.get('oai-authenticated-user-id');if(!owner||!env.TRADE_OWNER_EMAIL||request.headers.get('oai-authenticated-user-email')!==env.TRADE_OWNER_EMAIL)return json({error:'Owner sign-in required'},403);
  if(!env.DB||!env.TRADE_SESSION_SECRET)return json({error:'Connection storage unavailable'},503);
@@ -43,6 +55,15 @@ async function fyersRoute(request,env){
   const data={asOf:Date.now(),connected:results.some(r=>r.status==='fulfilled'),errors:[]};
   results.forEach((r,i)=>{data[names[i]]=r.status==='fulfilled'?r.value:null;if(r.status==='rejected')data.errors.push(names[i]+': '+r.reason.message)});
   return json(data);
+ }
+ if(route==='instruments'&&request.method==='GET'){
+ const segment=u.searchParams.get('segment')||'NSE_CM',search=(u.searchParams.get('search')||'').trim().toUpperCase();if(search.length<2||search.length>80)throw Error('Enter 2–80 characters to search instruments.');const catalog=await fyersCatalog(segment),matches=catalog.records.filter(r=>r.symbol.includes(search)||r.name.toUpperCase().includes(search));return json({source:'FYERS symbol master',segment,asOf:catalog.at,total:matches.length,instruments:matches.slice(0,50)})
+ }
+ if(route==='history'&&request.method==='GET'){
+ const symbol=fyersSymbol(u.searchParams.get('symbol')),resolution=u.searchParams.get('resolution')||'60';if(!['1','3','5','15','30','60','120','240','D'].includes(resolution))throw Error('Choose 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h or 1D.');
+ const now=Date.now(),days=resolution==='D'?365:Math.min(90,Math.max(7,Math.ceil(Number(resolution)*400/375*2))),to=Math.floor(now/1000)-60,from=to-days*86400;
+ const response=await fyersCall(c,'/data/history','?'+new URLSearchParams({symbol,resolution,date_format:'0',range_from:String(from),range_to:String(to),cont_flag:'1'}));if(!Array.isArray(response.candles))throw Error('FYERS returned no candle history.');
+ return json({source:'FYERS History API',symbol,resolution,asOf:now,closedOnly:true,candles:equityClosedBars(response.candles,resolution,now,!symbol.startsWith('MCX:')).slice(-500)})
  }
  if(route==='quotes'&&request.method==='GET'){const symbols=[...new Set((u.searchParams.get('symbols')||'').split(',').map(fyersSymbol))];if(symbols.length>20)throw Error('Maximum 20 symbols per request');const d=await fyersCall(c,'/data/quotes','?'+new URLSearchParams({symbols:symbols.join(',')}));if(!Array.isArray(d.d))throw Error('Fyers quotes response is invalid');return json({asOf:Date.now(),quotes:d.d.map(fyersQuote).filter(q=>symbols.includes(q.symbol))})}
  if(route==='scan'&&request.method==='GET'){
@@ -74,7 +95,7 @@ async function fyersRoute(request,env){
  }catch(e){return json({error:e.message||'Fyers unavailable'},400)}
 }
 // Exchange sessions contain overnight/weekend gaps: do not reuse crypto's continuous-calendar validator.
-function equityClosedBars(raw,resolution,now,regularSession=false){const duration=resolution==='D'?86400000:Number(resolution)*60000;const seen=new Set();return raw.filter(r=>Array.isArray(r)&&r.length>=6).map(r=>({time:Number(r[0])*1000,open:Number(r[1]),high:Number(r[2]),low:Number(r[3]),close:Number(r[4]),volume:Number(r[5])})).filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return Object.values(c).every(Number.isFinite)&&c.low>0&&c.high>=Math.max(c.open,c.close)&&c.low<=Math.min(c.open,c.close)&&c.volume>=0&&(regularSession?equityBarEnd(c.time,resolution):c.time+duration)<=now}).sort((a,b)=>a.time-b.time)}
+function equityClosedBars(raw,resolution,now,regularSession=false){const duration=resolution==='D'?86400000:Number(resolution)*60000;const seen=new Set();return raw.filter(r=>Array.isArray(r)&&r.length>=6).map(r=>({time:Number(r[0])*1000,open:Number(r[1]),high:Number(r[2]),low:Number(r[3]),close:Number(r[4]),volume:Number(r[5])})).filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return c.time<=now&&Object.values(c).every(Number.isFinite)&&c.low>0&&c.high>=Math.max(c.open,c.close)&&c.low<=Math.min(c.open,c.close)&&c.volume>=0&&(regularSession?equityBarEnd(c.time,resolution):c.time+duration)<=now}).sort((a,b)=>a.time-b.time)}
 function equityBarEnd(at,resolution){const local=new Date(at+19800000),day=Date.UTC(local.getUTCFullYear(),local.getUTCMonth(),local.getUTCDate())-19800000,close=day+55800000;return resolution==='D'?close:Math.min(at+Number(resolution)*60000,close)}
 function equitySignals(h,f,d,quote){
  const avg=a=>a.reduce((s,x)=>s+x,0)/a.length;

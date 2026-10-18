@@ -5,7 +5,7 @@ const origin='https://radar.test',originalFetch=globalThis.fetch;
 const call=(path,init={},env={})=>worker.fetch(new Request(origin+path,init),env);
 try{
 for(let [route,file] of [['/naam-japa','dist/naam-japa.html'],['/naam-japa/','dist/naam-japa.html'],['/naam-japa.js','dist/naam-japa.js'],['/telegram-posts.js','dist/telegram-posts.js'],['/deep-review.js','dist/deep-review.js'],['/learnings','dist/learnings.html'],['/learnings/','dist/learnings.html'],['/learnings.js','dist/learnings.js'],['/','dist/index.html'],['/app.js','dist/app.js'],['/stocks.js','dist/stocks.js'],['/signals.js','dist/signals.js'],['/customer-flow.js','dist/customer-flow.js'],['/custom-alert-rules.js','dist/custom-alert-rules.js']]){
- let r=await call(route);assert.equal(r.status,200);assert.equal(await r.text(),fs.readFileSync(file,'utf8')+(route==='/stocks.js'?'\n'+fs.readFileSync('dist/market-accounts.js','utf8')+'\n'+fs.readFileSync('dist/learnings.js','utf8'):''));assert.equal(r.headers.get('cache-control'),'no-store');
+ let r=await call(route);assert.equal(r.status,200);assert.equal(await r.text(),fs.readFileSync(file,'utf8')+(route==='/stocks.js'?'\n'+fs.readFileSync('dist/market-accounts.js','utf8')+'\n'+fs.readFileSync('dist/fyers-chart.js','utf8')+'\n'+fs.readFileSync('dist/learnings.js','utf8'):''));assert.equal(r.headers.get('cache-control'),'no-store');
 }
 assert.equal((await call('/missing')).status,404);
 assert.equal((await call('/api/delta/v2/orders')).status,404);
