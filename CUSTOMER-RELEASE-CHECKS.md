@@ -119,3 +119,6 @@ Named published recording presets for Premanand Maharaj, Srila Prabhupada and Ra
 
 ## Telegram reconnect repair — telegram.9
 Bounded Telegram requests release busy after stalled transport; saved-session retry retains encrypted login. Mock regression reproduces stalled message fetch and verifies retry, channel feed recovery, and preserved vault. Real user network/session requires local verification.
+
+## Market panel recovery — 2026.10.19.markets.10
+NSE index chart selections use direct TradingView / exact FYERS instrument handoff rather than known restricted embeds. All global provider panels have visible top links, reversible hide/show controls, script-load wording that does not imply quotes loaded, and bounded loading guidance. NSE cash-table entries remain linked without empty widget rows. Indian chart scans reject duplicate, unsorted and malformed OHLC data before chart rendering; failures clear the old chart, retry remains enabled, and indices show points. Automated DOM/mock checks only: actual exchange licensing, browser layout and saved live FYERS session remain user acceptance checks.

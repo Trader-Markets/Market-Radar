@@ -15,7 +15,7 @@ document.querySelector('.stock-company button:nth-of-type(2)').click();assert.eq
 document.querySelector('[data-stock-tab="screener"]').click();assert.ok(document.querySelector('script[src*="screener"]'));
 const market=document.querySelector('#equityMarket');market.value='india';market.onchange();assert.equal(JSON.parse(document.querySelector('script[src*="screener"]').textContent).market,'india');
 document.querySelector('script[src*="screener"]').onerror();assert.match(document.querySelector('.stock-status').textContent,/could not load/);
-document.querySelector('[data-stock-tab="indices"]').click();document.querySelector('[data-stock-tab="screener"]').click();assert.equal(document.querySelector('#equityMarket').value,'india');assert.ok(JSON.parse(document.querySelector('script[src*="screener"]').textContent).height>=600);document.querySelector('script[src*="screener"]').onload();assert.match(document.querySelector('.stock-status').textContent,/Provider loaded/);
+document.querySelector('[data-stock-tab="indices"]').click();document.querySelector('[data-stock-tab="screener"]').click();assert.equal(document.querySelector('#equityMarket').value,'india');assert.ok(JSON.parse(document.querySelector('script[src*="screener"]').textContent).height>=600);document.querySelector('script[src*="screener"]').onload();assert.match(document.querySelector('.stock-status').textContent,/Panel script loaded/);
 document.querySelector('[data-asset="crypto"]').click();assert.equal(document.querySelector('#crypto').hidden,false);assert.equal(document.querySelectorAll('.stock-widget').length,0);assert.ok(document.querySelector('#trade'));
 console.log('Stocks workspace isolation, indices, filtering, tracking, provider configuration and failure states passed');
 
@@ -30,3 +30,9 @@ const linkCount=quoteHost.querySelectorAll('a').length;
 [...quoteHost.querySelectorAll('button')].find(b=>b.textContent==='Reload this panel').click();
 assert.equal(quoteHost.querySelectorAll('a').length,linkCount);
 assert.match(quoteHost.textContent,/If a symbol is restricted/);
+
+// Restricted NSE symbols never create a known-blocked chart frame.
+document.querySelector('[data-index-symbol="NSE:NIFTY"]').click();
+const restricted=document.querySelector('#selectedIndexChart');assert.equal(restricted.querySelectorAll('script[src*=advanced-chart]').length,0);assert.match(restricted.textContent,/FYERS/);assert.ok(restricted.querySelector('a[href*="NSE%3ANIFTY"]'));assert.ok([...restricted.querySelectorAll('button')].some(b=>/FYERS/.test(b.textContent)));
+const provider=document.querySelector('script[src*=market-quotes]').parentElement.parentElement;const collapse=[...provider.querySelectorAll('button')].find(b=>b.textContent==='Hide unavailable panel');collapse.click();assert.equal(provider.querySelector('.stock-widget').hidden,true);collapse.click();assert.equal(provider.querySelector('.stock-widget').hidden,false);assert.ok(provider.querySelector('.stock-provider-actions a'));
+console.log('PASS restricted NSE chart fallback, visible provider escape links and reversible unavailable-panel controls');

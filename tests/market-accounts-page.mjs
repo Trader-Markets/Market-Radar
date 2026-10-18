@@ -14,3 +14,11 @@ document.querySelector('[data-india="trade"]').click();quoteRows=[{symbol:'NSE:W
 const preset=document.querySelector('#indiaPreset');preset.value='NSE:RELIANCE-EQ';preset.onchange();assert.equal(document.querySelector('#indiaSymbol').value,'NSE:RELIANCE-EQ');quoteRows=[{symbol:'NSE:RELIANCE-EQ',price:1234,at:Date.now(),valid:true}];await document.querySelector('#indiaQuote').onclick();assert.match(document.querySelector('#indiaQuoteText').textContent,/1,234/);quoteError=true;await document.querySelector('#indiaQuote').onclick();timers.find(x=>x.delay===1000).fn();assert.match(document.querySelector('#indiaQuoteText').textContent,/Broker offline/);
 assert.ok(!requests.some(x=>/submit|orders/.test(x)));
 console.log('PASS three workspace isolation, stale UI responses, local alert storage, readable tables and real-performance empty state');
+
+// A restricted global-index chart opens the matching broker instrument without requesting an order.
+document.querySelector('[data-asset="indices"]').click();document.querySelector('[data-index-symbol="NSE:NIFTY"]').click();const fallback=[...document.querySelector('#selectedIndexChart').querySelectorAll('button')].find(b=>/FYERS/.test(b.textContent));fallback.click();assert.equal(document.querySelector('#indiaWorkspace').hidden,false);assert.equal(document.querySelector('#indiaSymbol').value,'NSE:NIFTY50-INDEX');assert.equal(document.querySelector('#indiaPreset').value,'NSE:NIFTY50-INDEX');
+console.log('PASS global index to FYERS exact-instrument handoff');
+
+context.fetch=async()=>Response.json({symbol:'NSE:NIFTY50-INDEX',results:[],candles:[{time:1700000000000,open:100,high:102,low:99,close:101,volume:1},{time:1700000000000,open:100,high:102,low:99,close:101,volume:1}]});
+await document.querySelector('#indiaScan').onclick();assert.match(document.querySelector('#indiaStatus').textContent,/invalid scan response/);assert.match(document.querySelector('#indiaChart').textContent,/Chart unavailable/);assert.equal(document.querySelector('#indiaScan').disabled,false);
+console.log('PASS duplicate broker candles rejected before chart rendering, clear failed-chart state and retry recovery');
