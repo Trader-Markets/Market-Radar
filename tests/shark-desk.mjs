@@ -19,3 +19,5 @@ await assert.rejects(()=>ctx.prepareShark({key:'fake-api-key',secret:'fake-secre
 assert.throws(()=>ctx.sharkQuantity(.002,{...contract,filters:[]}),/Quantity/);
 assert.throws(()=>vm.runInContext('sharkList({unexpected:[]})',ctx),/incomplete/);
 console.log('PASS Shark: history failure preserves account data; crossed stop and missing quantity rules reject order review');
+ctx.fetch=async(url,o)=>url.includes('/trade-history')?Response.json({data:[null]}):fetch(url,o);
+recovered=await ctx.sharkState({key:'fake-api-key',secret:'fake-secret-value'});assert.equal(recovered.positions.length,0);assert.equal(recovered.errors.length,1);assert.match(recovered.errors[0],/^trades:/,'malformed optional history must not erase positions');

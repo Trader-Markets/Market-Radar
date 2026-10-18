@@ -293,3 +293,5 @@ vm.runInContext('stopLive()',context);
 stream.onmessage({data:JSON.stringify({type:'trades',sy:'BTCUSD',p:'999',t:Date.now()*1000})});
 assert.equal(vm.runInContext('chartData.lastPrice',context),102);
 console.log('PASS direct trade ticks, source timestamps, stale/out-of-order rejection, streamed order book and cancelled stream isolation');
+await assert.rejects(()=>context.accountResponse(Response.json(null),'Delta'),/invalid response/);
+await assert.rejects(()=>context.accountResponse(new Response('{',{headers:{'content-type':'application/json'}}),'WhatsApp'),/unreadable response/);

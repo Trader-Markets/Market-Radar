@@ -1,9 +1,9 @@
 import {parseHTML} from 'linkedom';import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
 const flush=()=>new Promise(r=>setImmediate(r));
-function setup(savedRules='[]'){
+function setup(savedRules='[]',deferStatus=false){
  const {window,document}=parseHTML('<html><head></head><body><main class="shell"><section id="apiView"></section></main></body></html>');
  Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return this._value??this.querySelector('option')?.value??''},set(v){this._value=String(v)}});
- const pending=[],store=new Map([['radar.indiaRules',savedRules]]),ctx=vm.createContext({document,window,console,setInterval:()=>0,localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},fetch:(path,options)=>{if(path.endsWith('/status'))return Promise.resolve(Response.json({connected:false,configured:false,appId:'',message:'Not connected.'}));return new Promise((resolve,reject)=>pending.push({path,options,resolve,reject}))}});
+ const pending=[],store=new Map([['radar.indiaRules',savedRules]]),ctx=vm.createContext({document,window,console,setInterval:()=>0,localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},fetch:(path,options)=>{if(!deferStatus&&path.endsWith('/status'))return Promise.resolve(Response.json({connected:false,configured:false,appId:'',message:'Not connected.'}));return new Promise((resolve,reject)=>pending.push({path,options,resolve,reject}))}});
  for(const name of ['stocks','market-accounts'])vm.runInContext(fs.readFileSync('dist/'+name+'.js','utf8'),ctx);
  const click=selector=>document.querySelector(selector).click();click('[data-asset=india]');return {document,pending,click,store};
 }
@@ -24,3 +24,9 @@ assert.equal(p.document.querySelector('#indiaPreset').value,'NSE:TCS-EQ');
 const noChart=p.document.querySelector('#indiaScan').onclick();p.pending.shift().resolve(Response.json({symbol:'NSE:TCS-EQ',asOf:Date.now(),results:[],candles:[]}));await flush();p.pending.shift().resolve(Response.json({asOf:Date.now(),quotes:[]}));await noChart;
 assert.match(p.document.querySelector('#indiaChart').textContent,/Chart library unavailable/);
 const malformed=p.document.querySelector('#indiaQuote').onclick();p.pending.shift().resolve(Response.json(null));await malformed;assert.match(p.document.querySelector('#indiaQuoteText').textContent,/Server response unavailable/);
+
+// A customer can return to a selected Indian instrument without resetting to Nifty.
+p=setup();await flush();p.click('[data-india=trade]');p.document.querySelector('#indiaSymbol').value='NSE:TCS-EQ';p.document.querySelector('#indiaSymbol').oninput();p.click('[data-india=alerts]');p.click('[data-india=trade]');assert.equal(p.document.querySelector('#indiaSymbol').value,'NSE:TCS-EQ');assert.equal(p.document.querySelector('#deltaPerformance').tagName,'DETAILS');
+p.click('[data-india=positions]');p.pending.shift().resolve(Response.json({asOf:Date.now(),positions:null}));await flush();assert.match(p.document.querySelector('#indiaStatus').textContent,/Account response is incomplete/);assert.equal(p.document.querySelector('#indiaRefreshAccount').disabled,false);
+
+p=setup('[]',true);p.pending.shift().resolve(Response.json({connected:false,configured:false}));await flush();p.click('[data-india=settings]');const initialSettings=p.pending.shift();p.document.querySelector('#fyersApp').value='TESTAPP-100';p.document.querySelector('#fyersSecret').value='test-secret';const savingApp=p.document.querySelector('#fyersSave').onclick();const savingRequest=p.pending.shift();p.document.querySelector('#fyersLogin').onclick();assert.equal(p.pending.length,0,'settings actions are serialized');savingRequest.resolve(Response.json({configured:true}));await savingApp;initialSettings.resolve(Response.json({appId:'OLDAPP-100',message:'Old status'}));await flush();assert.match(p.document.querySelector('#indiaStatus').textContent,/App saved/);assert.equal(p.document.querySelector('#fyersApp').value,'TESTAPP-100');assert.equal(p.document.querySelector('#indiaStatus').nextElementSibling.id,'indiaBody');

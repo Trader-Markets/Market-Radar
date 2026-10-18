@@ -78,3 +78,14 @@ Validation: full 37-file automated suite, including additional DOM regressions. 
 - Keyboard focus, skip links, bounded dialogs, wrapping notification titles and reduced-motion styles are included.
 
 Verification: automated DOM navigation and interaction checks, CSS parsing, colour-contrast checks, full test suite and worker build. This environment has no supported browser-rendering path; actual Windows/phone visual acceptance remains outstanding.
+
+## Integration recovery — integration.4
+
+- FYERS history requests now run with bounded concurrency (maximum three). The browser scan deadline accommodates the server's history and quote deadlines.
+- A failed timeframe is marked unavailable without discarding usable history from other timeframes. A missing/mismatched live quote cannot confirm an entry.
+- FYERS, Delta and Shark account list validation rejects malformed provider data. Malformed optional Shark trade history retains positions and orders with an explicit warning.
+- Saved malformed alerts cannot break dashboard startup. Null or unreadable API replies show actionable errors in account, WhatsApp and history paths.
+- Indian request status appears above the chart; selected instruments survive tab changes. Settings operations are serialized and a late initial status response cannot overwrite a successful connection action.
+- Quick ledger totals are collapsed; the full Performance & Learnings page remains the main review path. Workspace selection is retained in the URL for reloads and return navigation.
+
+All checks use mocked authenticated provider responses. No real orders, leverage changes or messages were sent. Real Windows rendering, broker credentials/IP access, provider quotas and customer-account reconciliation still require acceptance testing.

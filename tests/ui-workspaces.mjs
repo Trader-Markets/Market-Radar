@@ -4,11 +4,11 @@ import assert from 'node:assert/strict';
 import {parseHTML} from 'linkedom';
 
 // Exercise the assembled customer DOM with no exchange or messaging writes.
-function fixture(hash=''){
+function fixture(hash='',saved={}){
  const {window,document}=parseHTML(fs.readFileSync('dist/index.html','utf8'));
  Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return this._value??this.querySelector('option[selected]')?.value??this.querySelector('option')?.value??''},set(v){this._value=String(v)}});
  Object.defineProperty(window.HTMLSelectElement.prototype,'options',{get(){return [...this.querySelectorAll('option')]}});
- const context=vm.createContext({window,document,console,AbortSignal,URL,URLSearchParams,localStorage:{getItem:()=>null,setItem:()=>{}},setInterval:()=>0,clearInterval:()=>{},setTimeout:()=>0,clearTimeout:()=>{},queueMicrotask:()=>{},fetch:async()=>{throw Error('Offline UI check')},location:{hostname:'localhost',origin:'http://localhost',pathname:'/',hash},navigator:{},ResizeObserver:class{observe(){}},requestAnimationFrame:()=>0});
+ const context=vm.createContext({window,document,console,AbortSignal,URL,URLSearchParams,localStorage:{getItem:key=>saved[key]??null,setItem:()=>{}},setInterval:()=>0,clearInterval:()=>{},setTimeout:()=>0,clearTimeout:()=>{},queueMicrotask:()=>{},fetch:async()=>{throw Error('Offline UI check')},location:{hostname:'localhost',origin:'http://localhost',pathname:'/',hash},navigator:{},ResizeObserver:class{observe(){}},requestAnimationFrame:()=>0});
  for(const [file,key] of [['customer-flow','CustomerFlow'],['signals','StrategySignals'],['custom-alert-rules','CustomAlertRules']]){vm.runInContext(fs.readFileSync('dist/'+file+'.js','utf8'),context);context[key]=window[key]}
  for(const file of ['app','stocks','market-accounts','learnings'])vm.runInContext(fs.readFileSync('dist/'+file+'.js','utf8'),context);
  return {document,context};
@@ -47,3 +47,5 @@ for(const [fg,bg] of [['ffffff','624082'],['ffffff','4d2f6a'],['536278','f5f6fa'
  const a=luminance(fg),b=luminance(bg);assert.ok((Math.max(a,b)+.05)/(Math.min(a,b)+.05)>=4.5,'readable text contrast');
 }
 console.log('PASS assembled workspace navigation/deep links, unique controls, offline recovery, keyboard scroll access, shared CSS parsing and text contrast; no pixel-rendering claim');
+
+const damaged=fixture('',{radarAlerts:'[null,{}, {"title":"Saved alert"}]',radarSeenAlerts:'{}'});assert.match(damaged.document.querySelector('#alertRows').textContent,/Saved alert/);
