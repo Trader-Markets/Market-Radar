@@ -1,3 +1,7 @@
+# Current release: india.15 — 19 October 2026
+
+See INDIAN-MARKETS-REPAIR.md for the connection-to-chart customer journey. Full suite: 51 runner tests across 48 files passed; actual private account/browser acceptance is still required.
+
 # Current release: fyers-chart.14 — 19 October 2026
 
 See FYERS-CHART-CAPABILITIES.md for the direct-data chart/search update and explicit feature limits. Full suite: 50/50 runner tests across 47 files.

@@ -3,7 +3,7 @@ const flush=()=>new Promise(r=>setImmediate(r));
 function setup(savedRules='[]',deferStatus=false){
  const {window,document}=parseHTML('<html><head></head><body><main class="shell"><section id="apiView"></section></main></body></html>');
  Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return this._value??this.querySelector('option')?.value??''},set(v){this._value=String(v)}});
- const pending=[],store=new Map([['radar.indiaRules',savedRules]]),ctx=vm.createContext({document,window,console,setInterval:()=>0,localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},fetch:(path,options)=>{if(!deferStatus&&path.endsWith('/status'))return Promise.resolve(Response.json({connected:false,configured:false,appId:'',message:'Not connected.'}));return new Promise((resolve,reject)=>pending.push({path,options,resolve,reject}))}});
+ let statusReads=0;const pending=[],store=new Map([['radar.indiaRules',savedRules]]),ctx=vm.createContext({document,window,console,setInterval:()=>0,localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},fetch:(path,options)=>{if(path.endsWith('/status')&&(!deferStatus||++statusReads===2))return Promise.resolve(Response.json({connected:false,configured:false,appId:'',message:'Not connected.'}));return new Promise((resolve,reject)=>pending.push({path,options,resolve,reject}))}});
  for(const name of ['stocks','market-accounts'])vm.runInContext(fs.readFileSync('dist/'+name+'.js','utf8'),ctx);
  const click=selector=>document.querySelector(selector).click();click('[data-asset=india]');return {document,pending,click,store};
 }
