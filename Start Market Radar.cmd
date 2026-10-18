@@ -23,7 +23,7 @@ if not exist "node_modules\telegram\index.js" (
 )
 :start_radar
 echo Keep this window open and prevent this PC from sleeping.
-node local-trading.mjs --open --telegram-setup
+node local-trading.mjs --open
 if errorlevel 23 if not errorlevel 24 (
  pause
  goto start_radar

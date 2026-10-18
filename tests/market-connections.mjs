@@ -12,6 +12,10 @@ let quotes=await (await call('quotes?symbols=NSE%3ANIFTY50-INDEX')).json();asser
 let a=await (await call('account')).json();assert.equal(a.errors.length,0);assert.equal(a.connected,true);expiry=true;a=await (await call('account')).json();assert.equal(a.connected,false);assert.equal(a.positions,null);assert.match(a.errors[0],/expired/);assert.equal((await call('submit',{confirm:true})).status,404);assert.equal(calls.filter(c=>c.method==='POST').length,1,'Only OAuth exchange uses POST; no orders submitted');
 assert.equal((await call('disconnect',{})).status,200);assert.equal((await call('account')).status,401);
 assert.equal(context.fyersQuote({s:'ok',v:{lp:100,tt:Date.now()/1000-30}}).valid,false);assert.equal(context.fyersQuote({s:'ok',v:{lp:100}}).valid,false);
+assert.equal(context.fyersQuote({s:'ok',n:'NSE:NIFTY50-INDEX',v:{lp:100,tt:Date.now()/1000,chp:null}}).changePercent,null);
+assert.equal(context.fyersQuote({s:'ok',v:{lp:100,tt:Date.now()/1000,chp:''}}).changePercent,null);
+assert.equal(context.fyersQuote({s:'ok',v:{lp:100,tt:Date.now()/1000+60}}).valid,false);
+assert.equal(context.fyersQuote({s:'ok',v:{lp:100,tt:Date.now()/1000,high_price:101,low_price:99,prev_close_price:98}}).previousClose,98);
 const now=Date.now();const bars=context.equityClosedBars([[now/1000-7200,100,102,99,101,5],[now/1000,100,102,99,101,5]],'60',now);assert.equal(bars.length,1);
 const h=Array.from({length:30},(_,i)=>({time:now-(30-i)*3600000,open:100,high:101,low:99,close:100,volume:0}));h.at(-1).close=101.5;h.at(-1).high=101.6;let signals=context.equitySignals(h,h,[],{valid:true,price:101.5});assert.equal(signals[0].status,'Watch');assert.match(signals[0].reason,/No traded volume/);
 console.log('PASS Fyers owner/CSRF isolation, encrypted OAuth, state/replay protection, errors, stale quotes, no-index-volume confirmation and no order routes');
