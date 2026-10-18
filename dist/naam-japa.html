@@ -178,6 +178,12 @@ html body #japaVolumeValue{min-width:40px;text-align:right}
 html body .japa-status{padding:13px 16px;min-height:50px;border:1px solid #ded5e9;border-radius:9px;background:#f5f1fa;color:#554763;font-size:14px;line-height:1.6}
 html body .japa-status.japa-error{color:#9b283a;border-color:#edc6cd;background:#fff1f2}
 html body #japaFilePanel{padding:24px 0}
+html body .japa-record-panel{margin:22px 0;padding:20px;border:1px solid #ddd1e8;border-radius:14px;background:#faf7fc}
+html body .japa-record-panel h2{margin:0 0 8px;font-size:19px;color:#39264f}
+html body .japa-record-panel p{font-size:14px;line-height:1.7}
+html body .japa-record-panel .japa-actions{margin:16px 0}
+html body #japaRecordingStatus{color:#9b283a;font-weight:650}
+html body .japa-download{display:inline-flex;padding:10px 14px;margin:10px 0;min-height:44px;align-items:center;border:1px solid #cbb2df;border-radius:8px;color:#624082;font-size:14px;font-weight:650;background:#fff;text-decoration:none}
 html body #japaFilePanel p{margin:12px 0}
 html body #japaFileName{overflow-wrap:anywhere;font-weight:650;color:#39264f}
 html body #japaVoiceSettings{margin-top:24px;border-top:1px solid var(--radar-line);padding-top:16px}
@@ -261,10 +267,11 @@ html body .asset-nav strong,html body .asset-nav .learning-nav-link:last-child{g
 <body class="japa-page">
 <header class="japa-header"><a href="/">← Market Radar</a><span>Your quiet space</span></header>
 <main id="japaWorkspace">
- <div class="japa-intro"><small>RADHA KRISHNA · NAAM JAPA</small><h1>A moment of remembrance</h1><p>Press Play once. Your chosen mantra repeats until you pause or stop.</p></div>
+ <div class="japa-intro"><small>RADHA KRISHNA · NAAM JAPA</small><h1>A moment of remembrance</h1><p>Record your chant once, then listen to your own voice on continuous repeat.</p></div>
  <section class="japa-card" aria-label="Mantra player">
-  <div class="japa-fields"><label>Listen to<select id="japaSource"><option value="voice">Built-in spoken mantra</option><option value="file">My audio recording</option></select></label><label id="japaMantraLabel">Choose mantra<select id="japaMantra"><option value="radha">Radha Krishna naam japa</option><option value="hare">Hare Krishna maha mantra</option></select></label></div>
+  <div class="japa-fields"><label>Listen to<select id="japaSource"><option value="record">Record my voice</option><option value="voice">Built-in spoken mantra</option><option value="file">My audio recording</option></select></label><label id="japaMantraLabel"><span id="japaMantraTitle">Mantra to read (optional)</span><select id="japaMantra"><option value="radha">Radha Krishna naam japa</option><option value="hare">Hare Krishna maha mantra</option></select></label></div>
   <div id="japaVerse" class="japa-verse"><p id="japaHindi" lang="hi"></p><p id="japaRoman"></p></div>
+  <section id="japaRecordPanel" class="japa-record-panel" aria-label="Record your naam japa"><h2>Your voice, your naam japa</h2><p>Press Record, allow microphone access, and chant the maha mantra or any naam japa. Press Stop recording, then Play continuously.</p><div class="japa-actions"><button id="japaRecord" type="button" class="refresh">● Record my voice</button><button id="japaRecordStop" type="button" class="mode" disabled>Stop recording</button></div><p id="japaRecordingStatus" class="small-note">Microphone off. Record up to 5 minutes.</p><a id="japaDownload" class="japa-download" hidden>Download my recording ↓</a><p class="small-note">Your actual chant repeats exactly as recorded. Audio stays in this browser and is not uploaded. Download it to keep a copy before closing or reloading this tab.</p></section>
   <div id="japaFilePanel" hidden><label class="japa-file">Choose an audio file<input id="japaFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac,.webm"></label><p id="japaFileName">No recording selected.</p><p class="small-note">Your file is played locally and is not uploaded by Market Radar. Select it again after reloading this page. Maximum 100 MB.</p></div>
   <p id="japaStatus" class="japa-status" role="status" aria-live="polite">Ready. Choose a mantra and press Play.</p>
   <div class="japa-actions"><button id="japaPlay" class="refresh" type="button">▶ Play continuously</button><button id="japaPause" class="mode" type="button" disabled>Pause</button><button id="japaStop" class="mode" type="button" disabled>Stop</button></div>

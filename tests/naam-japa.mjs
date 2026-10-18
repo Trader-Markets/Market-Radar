@@ -12,7 +12,7 @@ function fixture(supportSpeech=true){
  window.SpeechSynthesisUtterance=supportSpeech?class{constructor(text){this.text=text}}:undefined;
  window.speechSynthesis=supportSpeech?{getVoices:()=>[{name:'Hindi',lang:'hi-IN',default:true}],speak:u=>spoken.push(u),cancel:()=>{},addEventListener:()=>{}}:undefined;
  const context=vm.createContext({document,window,localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},URL:{createObjectURL:()=> 'blob:recording-'+Math.random(),revokeObjectURL:u=>revoked.push(u)},setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id},clearTimeout:id=>timers.delete(id)});
- vm.runInContext(fs.readFileSync('dist/naam-japa.js','utf8'),context);
+ vm.runInContext(fs.readFileSync('dist/naam-japa.js','utf8'),context);document.getElementById('japaSource').value='voice';document.getElementById('japaSource').dispatchEvent(new window.Event('change'));
  const el=id=>document.getElementById('japa'+id),click=id=>el(id).click(),change=(id,value)=>{el(id).value=value;el(id).dispatchEvent(new window.Event('change'))};
  return {window,document,spoken,timers,revoked,audio,el,click,change,playCalls:()=>playCalls,setFile:file=>{selected=[file];el('File').dispatchEvent(new window.Event('change'))},setPlay:fn=>playImpl=fn};
 }
