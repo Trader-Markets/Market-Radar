@@ -66,7 +66,7 @@ async function fyersRoute(request,env){
  let requested=(u.searchParams.get('symbol')||'').trim().toUpperCase();if(!requested.includes(':'))requested='NSE:'+requested;fyersSymbol(requested);
  const aliases={'NSE:NIFTY':'NSE:NIFTY50-INDEX','NSE:NIFTY50':'NSE:NIFTY50-INDEX','NSE:BANKNIFTY':'NSE:NIFTYBANK-INDEX','NSE:NIFTYBANK':'NSE:NIFTYBANK-INDEX','BSE:SENSEX':'BSE:SENSEX-INDEX'};
  if(aliases[requested])return json({symbol:aliases[requested],requested,source:'FYERS index symbol'});
- if(requested.includes('-')||/\d.*(?:FUT|CE|PE)$/.test(requested))return json({symbol:requested,requested,source:'Exact input'});
+ if(requested.endsWith('-INDEX')||/\d.*(?:FUT|CE|PE)$/.test(requested))return json({symbol:requested,requested,source:'Exact input'});
  const segment=requested.startsWith('NSE:')?'NSE_CM':requested.startsWith('BSE:')?'BSE_CM':'MCX_COM',catalog=await fyersCatalog(segment),exact=catalog.records.find(r=>r.symbol===requested),equity=catalog.records.find(r=>r.symbol===requested+'-EQ');
  const resolved=exact||equity;if(!resolved)throw Error('No exact FYERS instrument found for '+requested+'. Use stock search and select its exchange/series.');return json({symbol:resolved.symbol,name:resolved.name,requested,source:'FYERS symbol master'})
  }
