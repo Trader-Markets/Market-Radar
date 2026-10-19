@@ -5,7 +5,7 @@ async function fyersCall(c,path,query='',payload){
  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Fyers returned an invalid response (HTTP '+response.status+'). Retry later.');
  if(response.status===401||[-8,-15,-16,-17].includes(Number(data.code)))throw Error('Fyers login expired or invalid. Sign in again in Fyers settings.');
  if(!response.ok||data.s!=='ok'){
- const message=String(data.message||''),hint=/redirect/i.test(message)?'The redirect URL must match the one registered in your FYERS app.':/secret|appid.?hash/i.test(message)?'Check the App Secret paired with this exact App ID.':/auth.?code|authorization.?code/i.test(message)?'The authorization code is invalid or expired. Start FYERS sign-in again.':/client.?id|app.?id/i.test(message)?'Copy the complete App ID, including its original -100 or -200 suffix.':/ip address|static.?ip|whitelist|allowlist/i.test(message)?'Check the approved IP in your FYERS app and the connection used by this server.':response.status===403?'Check the app activation, permissions and approved server IP in FYERS.':response.status===429?'FYERS rate limit reached. Wait before retrying.':'Check app activation, permissions and sign-in.';
+ const message=String(data.message||''),hint=response.status===422||/symbol/i.test(message)?'Check the requested FYERS symbol and data parameters. Search/select the instrument; stock symbols usually include their series, for example NSE:TCS-EQ.':/redirect/i.test(message)?'The redirect URL must match the one registered in your FYERS app.':/secret|appid.?hash/i.test(message)?'Check the App Secret paired with this exact App ID.':/auth.?code|authorization.?code/i.test(message)?'The authorization code is invalid or expired. Start FYERS sign-in again.':/client.?id|app.?id/i.test(message)?'Copy the complete App ID, including its original -100 or -200 suffix.':/ip address|static.?ip|whitelist|allowlist/i.test(message)?'Check the approved IP in your FYERS app and the connection used by this server.':response.status===403?'Check the app activation, permissions and approved server IP in FYERS.':response.status===429?'FYERS rate limit reached. Wait before retrying.':'Check app activation, permissions and sign-in.';
  throw Error('FYERS request failed (HTTP '+response.status+', code '+String(Number.isFinite(Number(data.code))?Number(data.code):'unknown')+'). '+hint)
  }return data;
 }
@@ -55,6 +55,14 @@ async function fyersRoute(request,env){
   const data={asOf:Date.now(),connected:results.some(r=>r.status==='fulfilled'),errors:[]};
   results.forEach((r,i)=>{data[names[i]]=r.status==='fulfilled'?r.value:null;if(r.status==='rejected')data.errors.push(names[i]+': '+r.reason.message)});
   return json(data);
+ }
+ if(route==='resolve'&&request.method==='GET'){
+ let requested=(u.searchParams.get('symbol')||'').trim().toUpperCase();if(!requested.includes(':'))requested='NSE:'+requested;fyersSymbol(requested);
+ const aliases={'NSE:NIFTY':'NSE:NIFTY50-INDEX','NSE:NIFTY50':'NSE:NIFTY50-INDEX','NSE:BANKNIFTY':'NSE:NIFTYBANK-INDEX','NSE:NIFTYBANK':'NSE:NIFTYBANK-INDEX','BSE:SENSEX':'BSE:SENSEX-INDEX'};
+ if(aliases[requested])return json({symbol:aliases[requested],requested,source:'FYERS index symbol'});
+ if(requested.includes('-')||/\d.*(?:FUT|CE|PE)$/.test(requested))return json({symbol:requested,requested,source:'Exact input'});
+ const segment=requested.startsWith('NSE:')?'NSE_CM':requested.startsWith('BSE:')?'BSE_CM':'MCX_COM',catalog=await fyersCatalog(segment),exact=catalog.records.find(r=>r.symbol===requested),equity=catalog.records.find(r=>r.symbol===requested+'-EQ');
+ const resolved=exact||equity;if(!resolved)throw Error('No exact FYERS instrument found for '+requested+'. Use stock search and select its exchange/series.');return json({symbol:resolved.symbol,name:resolved.name,requested,source:'FYERS symbol master'})
  }
  if(route==='instruments'&&request.method==='GET'){
  const segment=u.searchParams.get('segment')||'NSE_CM',search=(u.searchParams.get('search')||'').trim().toUpperCase();if(search.length<2||search.length>80)throw Error('Enter 2–80 characters to search instruments.');const catalog=await fyersCatalog(segment),matches=catalog.records.filter(r=>r.symbol.includes(search)||r.name.toUpperCase().includes(search));return json({source:'FYERS symbol master',segment,asOf:catalog.at,total:matches.length,instruments:matches.slice(0,50)})
