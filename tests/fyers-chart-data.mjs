@@ -17,3 +17,12 @@ const universeResponse=await context.fyersRoute(request('universe'),env),univers
 assert.equal(universe.instruments.at(-1).symbol,'NSE:ZZ129-EQ');
 
 for(const typed of ['BAJAJ-AUTO','NSE:BAJAJ-AUTO','NSE:BAJAJ-AUTO-EQ']){const r=await context.fyersRoute(request('resolve?symbol='+encodeURIComponent(typed)),env);assert.equal((await r.json()).symbol,'NSE:BAJAJ-AUTO-EQ','hyphen in stock name is not an exchange series')}
+// Newly exposed intervals and calendar boundaries use the same owner-protected route.
+for(const resolution of ['5S','10S','15S','30S','45S','2','10','20','45','180','1D','1W','1M']){const r=await context.fyersRoute(request('history?symbol=NSE:TCS-EQ&resolution='+resolution),env);const data=await r.json();assert.equal(r.status,200);assert.equal(data.resolution,resolution);assert.ok(Number.isInteger(data.nextBefore));assert.ok(data.nextBefore<data.rangeTo);}
+for(const cursor of ['-1','NaN','1.2',String(now/1000+1),'999999999999999999999'])assert.equal((await context.fyersRoute(request('history?symbol=NSE:TCS-EQ&before='+cursor),env)).status,400);
+const page=await (await context.fyersRoute(request('history?symbol=NSE:TCS-EQ&resolution=60&before='+String(now/1000-3600)),env)).json();assert.equal(page.rangeTo,now/1000-3600);assert.ok(page.candles.every(c=>c.time<=page.rangeTo*1000));
+const raw=dates=>dates.map(t=>[Date.parse(t)/1000,100,102,99,101,10]);
+assert.equal(context.equityClosedBars(raw(['2026-10-05T03:45:00Z','2026-10-12T03:45:00Z']),'1W',now,true).length,1,'current calendar week excluded');
+assert.equal(context.equityClosedBars(raw(['2026-09-01T03:45:00Z','2026-10-01T03:45:00Z']),'1M',now,true).length,1,'current calendar month excluded');
+assert.equal(context.equityPeriodEnd(Date.parse('2026-12-01T03:45:00Z'),'1M'),Date.parse('2026-12-31T18:30:00Z'),'month/year rollover uses IST');
+const secondsNow=Date.parse('2026-10-16T04:00:03Z');assert.equal(context.equityClosedBars(raw(['2026-10-16T03:59:55Z','2026-10-16T04:00:00Z']),'5S',secondsNow,true).length,1,'forming seconds candle excluded');
