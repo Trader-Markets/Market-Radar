@@ -23,7 +23,7 @@ async function fyersCatalog(segment){
  const response=await fetch('https://public.fyers.in/sym_details/'+segment+'.csv',{signal:AbortSignal.timeout(12000),redirect:'error'});if(!response.ok)throw Error('FYERS instrument directory unavailable (HTTP '+response.status+').');
  const reader=response.body.getReader(),chunks=[];let size=0;try{while(true){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>20*1024*1024)throw Error('FYERS instrument directory exceeds the supported size.');chunks.push(part.value)}}catch(e){await reader.cancel();throw e}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}
- const records=fyersCsv(new TextDecoder().decode(bytes)).filter(r=>/^(NSE|BSE|MCX):[A-Z0-9&._-]{2,65}$/.test(r[9]||'')).map(r=>({symbol:r[9],name:r[1],lot:Number(r[3]),tick:Number(r[4]),expiry:r[8]||null}));if(!records.length)throw Error('FYERS instrument directory returned no supported symbols.');
+ const records=fyersCsv(new TextDecoder().decode(bytes)).filter(r=>/^(NSE|BSE|MCX):[A-Z0-9&._-]{2,65}$/.test(r[9]||'')).map(r=>({symbol:r[9],name:r[1],instrumentType:r[2]!==''?Number(r[2]):null,lot:Number(r[3]),tick:Number(r[4]),expiry:r[8]||null}));if(!records.length)throw Error('FYERS instrument directory returned no supported symbols.');
  while(fyersCatalogCache.size>=2)fyersCatalogCache.delete(fyersCatalogCache.keys().next().value);const result={at:Date.now(),records};fyersCatalogCache.set(segment,result);return result;
 }
 async function fyersRoute(request,env){
@@ -55,6 +55,12 @@ async function fyersRoute(request,env){
   const data={asOf:Date.now(),connected:results.some(r=>r.status==='fulfilled'),errors:[]};
   results.forEach((r,i)=>{data[names[i]]=r.status==='fulfilled'?r.value:null;if(r.status==='rejected')data.errors.push(names[i]+': '+r.reason.message)});
   return json(data);
+ }
+ if(route==='universe'&&request.method==='GET'){
+ const catalog=await fyersCatalog('NSE_CM'),seen=new Set();
+ const instruments=catalog.records.filter(r=>r.symbol.startsWith('NSE:')&&[0,1].includes(r.instrumentType)&&!r.symbol.endsWith('-INDEX')&&!seen.has(r.symbol)&&seen.add(r.symbol)).map(r=>({symbol:r.symbol,name:r.name})).sort((a,b)=>a.symbol.localeCompare(b.symbol));
+ if(!instruments.length)throw Error('FYERS NSE stock directory returned no equity instruments. Retry later.');
+ return json({source:'FYERS NSE_CM symbol master',asOf:catalog.at,total:instruments.length,instruments,scope:'All NSE equity instruments available in FYERS, including equity series, preference shares and SME; excludes indices, ETFs, bonds and derivatives classified separately by FYERS.'});
  }
  if(route==='resolve'&&request.method==='GET'){
  let requested=(u.searchParams.get('symbol')||'').trim().toUpperCase();if(!requested.includes(':'))requested='NSE:'+requested;fyersSymbol(requested);
