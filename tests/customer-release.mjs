@@ -17,12 +17,12 @@ p=setup();await flush();p.click('[data-india=trade]');const oldScan=p.document.q
 console.log('PASS customer release: instrument and scan races, damaged alerts, duplicate refresh, late settings replies and transport-delayed quote rejection');
 
 p=setup();await flush();p.click('[data-india=trade]');
-for(const id of ['indiaEntry','indiaStop','indiaTarget'])p.document.querySelector('#'+id).value='100';
+for(const id of ['indiaEntry','indiaStop','indiaTarget','indiaDraw','indiaDrawingToolbar'])assert.equal(p.document.querySelector('#'+id),null,'custom chart tools removed');
 p.document.querySelector('#indiaSymbol').value='NSE:TCS-EQ';p.document.querySelector('#indiaSymbol').oninput();
-for(const id of ['indiaEntry','indiaStop','indiaTarget'])assert.equal(p.document.querySelector('#'+id).value,'','instrument changes clear old plan prices');
+
 assert.equal(p.document.querySelector('#indiaPreset').value,'NSE:TCS-EQ');
 const noChart=p.document.querySelector('#indiaScan').onclick();p.pending.shift().resolve(Response.json({symbol:'NSE:TCS-EQ',asOf:Date.now(),results:[],candles:[]}));await flush();p.pending.shift().resolve(Response.json({asOf:Date.now(),quotes:[]}));await noChart;
-assert.match(p.document.querySelector('#indiaChart').textContent,/Chart library unavailable/);
+assert.match(p.document.querySelector('#indiaChart').textContent,/TradingView module unavailable/);
 const malformed=p.document.querySelector('#indiaQuote').onclick();p.pending.shift().resolve(Response.json(null));await malformed;assert.match(p.document.querySelector('#indiaQuoteText').textContent,/Server response unavailable/);
 
 // A customer can return to a selected Indian instrument without resetting to Nifty.

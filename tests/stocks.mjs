@@ -33,6 +33,6 @@ assert.match(quoteHost.textContent,/If a symbol is restricted/);
 
 // Restricted NSE symbols never create a known-blocked chart frame.
 document.querySelector('[data-index-symbol="NSE:NIFTY"]').click();
-const restricted=document.querySelector('#selectedIndexChart');assert.equal(restricted.querySelectorAll('script[src*=advanced-chart]').length,0);assert.match(restricted.textContent,/FYERS/);assert.ok(restricted.querySelector('a[href*="NSE%3ANIFTY"]'));assert.ok([...restricted.querySelectorAll('button')].some(b=>/FYERS/.test(b.textContent)));
+const restricted=document.querySelector('#selectedIndexChart');assert.equal(restricted.querySelectorAll('script[src*=advanced-chart]').length,1,'NSE is attempted directly, not preemptively blocked');assert.equal(JSON.parse(restricted.querySelector('script[src*=advanced-chart]').textContent).symbol,'NSE:NIFTY');
 const provider=document.querySelector('script[src*=market-quotes]').parentElement.parentElement;const collapse=[...provider.querySelectorAll('button')].find(b=>b.textContent==='Hide unavailable panel');collapse.click();assert.equal(provider.querySelector('.stock-widget').hidden,true);collapse.click();assert.equal(provider.querySelector('.stock-widget').hidden,false);assert.ok(provider.querySelector('.stock-provider-actions a'));
-console.log('PASS restricted NSE chart fallback, visible provider escape links and reversible unavailable-panel controls');
+console.log('PASS direct NSE TradingView chart, visible provider escape links and reversible unavailable-panel controls');
