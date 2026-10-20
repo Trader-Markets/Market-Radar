@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Indian-market charts and regression repairs
 
 Build `2026.10.19.charts.18`

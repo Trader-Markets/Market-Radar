@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Indian markets usability repair — india.15
 
 19 October 2026 (IST)

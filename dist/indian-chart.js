@@ -25,5 +25,5 @@ window.RadarTradingView={mappedSymbol,mount(host,{symbol,allowSymbolChange=true,
  const key=e=>{if(e.key==='Escape'&&expanded)expand(false)};document.addEventListener('keydown',key);render();
  return ()=>{if(!active)return;active=false;expand(false);clear();document.removeEventListener('keydown',key);$('expand').onclick=null;$('retry').onclick=null;$('manual').onsubmit=null};
 }};
-window.FyersMarketChart={mount(host,{symbol}={}){return window.RadarTradingView.mount(host,{symbol,allowSymbolChange:true})}};
+window.DhanMarketChart={mount(host,{symbol}={}){return window.RadarTradingView.mount(host,{symbol,allowSymbolChange:true})}};
 })();

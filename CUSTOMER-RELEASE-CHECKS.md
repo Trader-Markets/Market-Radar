@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Current release: india.15 — 19 October 2026
 
 See INDIAN-MARKETS-REPAIR.md for the connection-to-chart customer journey. Full suite: 51 runner tests across 48 files passed; actual private account/browser acceptance is still required.

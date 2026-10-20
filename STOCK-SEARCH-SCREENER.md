@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Stock charts, search and screener update
 
 Build: `2026.10.19.stocks.16`

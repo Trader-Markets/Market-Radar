@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Indian chart loading repair
 
 Build `2026.10.19.load.19`

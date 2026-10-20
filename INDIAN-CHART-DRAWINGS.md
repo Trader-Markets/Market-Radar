@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Indian chart drawing tools
 
 Build `2026.10.20.draw.22`

@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Global and Indian markets update — 18 October 2026
 
 ## Repairs

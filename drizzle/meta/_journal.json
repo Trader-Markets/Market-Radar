@@ -64,6 +64,13 @@
       "when": 1792179189743,
       "tag": "0008_high_diamondback",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792484194720,
+      "tag": "0009_retire_previous_indian_broker",
+      "breakpoints": true
     }
   ]
 }

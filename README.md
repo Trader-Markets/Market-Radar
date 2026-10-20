@@ -1,3 +1,13 @@
+# Current Indian Markets provider: DhanHQ
+
+Indian Markets now uses Dhan for stock directories, index/stock quote snapshots, strategy checks, positions, funds, orders, trades and holdings. The previous broker integration and OAuth screens have been removed. Crypto remains unchanged.
+
+Connect in **Indian Markets → Settings** with your Dhan Client ID and access token. Generate the token in Dhan Web → My Profile → Access DhanHQ APIs. Credentials are verified against Dhan profile and encrypted on the server. Data APIs require appropriate Dhan access; manually generated tokens normally last 24 hours.
+
+See [DHAN-MIGRATION.md](DHAN-MIGRATION.md) for source contracts, tests and limitations. TradingView widget charts still use TradingView data and embedding permissions; switching broker does not unlock restricted NSE widget data. Indian order submission is not enabled.
+
+---
+
 # Breakout Radar / Market Radar
 
 Personal market scanner and trading workspace for Delta Exchange India and Shark Exchange, with separate stocks/indices tools, performance calendars, trade learnings, custom alerts, and Telegram news.

@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # TradingView chart update — 2026.10.20.tv.25
 
 Indian Markets and global stock charts now use TradingView's official Advanced Chart widget. The Indian screen no longer switches to a custom FYERS chart. Removed duplicate timeframe, indicator and drawing controls and obsolete custom chart modules. TradingView owns its native chart tools and symbol search.

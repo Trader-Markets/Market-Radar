@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Chart screen update — chart.23
 
 Indian markets now opens the official TradingView widget with native drawing and indicator toolbars. Stock search, instrument name, Open full TradingView, Expand chart and Strategy checks & plan remain visible. Chart source and help are collapsed; FYERS chart settings are collapsed inside the broker view. The broker OHLC readout remains next to its chart.

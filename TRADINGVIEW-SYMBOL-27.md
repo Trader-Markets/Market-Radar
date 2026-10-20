@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # TradingView symbol handoff — 2026.10.20.tv.27
 
 The owner supplied a screenshot of TradingView's notification for NSE:20MICRONS: the symbol is only available on TradingView. This is a provider widget/data restriction, not an unloaded script or the FYERS scanner quota error. It cannot be unlocked by retrying, changing the widget theme, buying a personal TradingView plan, or feeding FYERS data into the free widget.

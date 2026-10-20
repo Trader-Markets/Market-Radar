@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Hyphenated stock symbols and screener search repair
 
 Build `2026.10.19.symbols.20`

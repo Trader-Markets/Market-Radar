@@ -1,3 +1,5 @@
+> Historical release notes. Superseded for Indian Markets by DHAN-MIGRATION.md.
+
 # Full NSE stock screener
 
 Build `2026.10.19.nse.17`

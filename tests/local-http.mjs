@@ -14,8 +14,8 @@ try{
  const version=await (await call('/api/local-version')).json();assert.equal(version.telegramSetup,true);
  const tg=await (await call('/api/local-telegram')).json();assert.equal(tg.state,'disconnected');
  const background=await (await call('/api/background')).json();assert.equal(background.configured,false);assert.equal(background.serviceAvailable,true);
- for(const path of ['/api/delta-desk/account','/api/shark-desk/account','/api/fyers/account']){const r=await call(path);assert.ok([400,401].includes(r.status),path);assert.equal(typeof (await r.json()).error,'string')}
- const rejected=await call('/api/fyers/setup',{method:'POST',headers:{origin:'https://untrusted.test','content-type':'application/json'},body:'{}'});assert.equal(rejected.status,403);
+ for(const path of ['/api/delta-desk/account','/api/shark-desk/account','/api/dhan/account']){const r=await call(path);assert.ok([400,401].includes(r.status),path);assert.equal(typeof (await r.json()).error,'string')}
+ const rejected=await call('/api/dhan/setup',{method:'POST',headers:{origin:'https://untrusted.test','content-type':'application/json'},body:'{}'});assert.equal(rejected.status,403);
  assert.equal((await call('/api/local-version',{headers:{host:'evil.test'}})).status,421);
  assert.equal((await call('/api/delta/v2/wallet/withdraw',{method:'POST',headers:{origin,'content-type':'application/json'},body:'{}'})).status,405);
  console.log('PASS real isolated localhost HTTP server: startup, all pages/assets, empty account recovery, saved-watchlist availability, CSRF, Host protection and withdrawal rejection; no user accounts or live messages used');
