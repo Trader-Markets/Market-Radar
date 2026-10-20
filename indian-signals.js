@@ -23,6 +23,6 @@ function equitySignals(h,f,d,quote){
   {strategy:'4H 200 EMA consolidation',status:e===null?'Unavailable':consolidation?'Watch':'No setup',reason:e===null?'Needs at least 220 closed 4H candles':'Consolidation is a watch, not a confirmed breakout',level:e},
   {strategy:'Golden / death cross',status:slow===null?'Unavailable':gold||death?'Watch':'No setup',reason:slow===null?'Needs at least 200 closed 4H candles':gold?'50 SMA crossed above 200 SMA':death?'50 SMA crossed below 200 SMA':'Latest closed 4H 50/200 SMA comparison'},
   {strategy:'Liquidity sweep',status:!ready?'Unavailable':sweptHigh||sweptLow?'Detected':'Not detected',reason:!ready?'Needs 21 closed 1H candles':sweptHigh?'High swept; closed back inside range':sweptLow?'Low swept; closed back inside range':'Separate candle-pattern check; does not prove stop orders'},
-  {strategy:'Multi-timeframe / ATH',status:'Unavailable',reason:'90-day history cannot verify lifetime ATH or full monthly alignment. No confirmation issued.'}
+  {strategy:'Multi-timeframe / ATH',status:'Unavailable',reason:'Lifetime ATH and full monthly alignment are not verified by this scan. No confirmation issued.'}
  ];
 }
