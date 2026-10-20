@@ -1,14 +1,32 @@
 const FYERS_HOST='https://api-t1.fyers.in';
+// Data endpoints share one paced lane per saved session in this server instance.
+// Other apps/hosted instances can consume the same broker quota, so provider cooldowns still apply.
+const fyersDataSessions=new Map();
+function fyersRateError(seconds=65,manual=false,provider=false){const e=Error(manual?'FYERS data quota is still exhausted. Scan progress is saved. Wait for the broker quota to reset before resuming.':'FYERS data rate limit reached. Scan progress is saved; retry after the cooldown.');e.rateLimited=true;e.retryAfter=Math.max(1,Math.ceil(seconds));e.manualRetry=manual;e.providerLimited=provider;e.httpStatus=429;return e}
+function fyersDataSession(c){const key=c.appId+':'+c.token;let state=fyersDataSessions.get(key);if(!state){if(fyersDataSessions.size>=4){const idle=[...fyersDataSessions].find(([,v])=>!v.pending);if(idle)fyersDataSessions.delete(idle[0]);else throw fyersRateError(5)}state={tail:Promise.resolve(),pending:0,lastStart:null,until:0,hits:0,day:'',history:new Map()};fyersDataSessions.set(key,state)}return state}
 async function fyersCall(c,path,query='',payload){
- let response;try{response=await fetch(FYERS_HOST+path+query,{method:payload?'POST':'GET',redirect:'error',headers:{accept:'application/json','content-type':'application/json',...(c.token?{authorization:c.appId+':'+c.token}:{})},body:payload?JSON.stringify(payload):undefined,signal:AbortSignal.timeout(12000)})}catch(e){throw Error(/timeout|abort/i.test(e?.name+' '+e?.message)?'FYERS request timed out. Retry; saved app details are retained.':'Cannot reach FYERS. Check your internet and retry; saved app details are retained.')}
- let data;try{data=await response.json()}catch{throw Error('Fyers returned an unreadable response (HTTP '+response.status+'). Retry later.')}
+ if(!path.startsWith('/data/'))return fyersRequest(c,path,query,payload);
+ const state=fyersDataSession(c);if(state.pending>=12)throw fyersRateError(5);const previous=state.tail;let release;state.tail=new Promise(r=>release=r);state.pending++;
+ try{await previous;const day=new Date(Date.now()+19800000).toISOString().slice(0,10);if(state.day!==day){state.day=day;state.hits=0}
+ if(Date.now()<state.until)throw fyersRateError((state.until-Date.now())/1000,state.hits>=2);
+ const delay=state.lastStart===null?0:Math.max(0,1500-(Date.now()-state.lastStart));if(delay)await new Promise(r=>setTimeout(r,delay));state.lastStart=Date.now();
+ try{return await fyersRequest(c,path,query,payload)}catch(e){if(e.rateLimited){state.hits++;e.manualRetry=e.manualRetry||state.hits>=2;state.until=Date.now()+e.retryAfter*1000}throw e}
+ }finally{state.pending--;release()}
+}
+async function fyersRequest(c,path,query='',payload){
+ let response;try{response=await fetch(FYERS_HOST+path+query,{method:payload?'POST':'GET',redirect:'error',headers:{accept:'application/json','content-type':'application/json',...(c.token?{authorization:c.appId+':'+c.token}:{})},body:payload?JSON.stringify(payload):undefined,signal:AbortSignal.timeout(path.startsWith('/data/')?8000:12000)})}catch(e){throw Error(/timeout|abort/i.test(e?.name+' '+e?.message)?'FYERS request timed out. Retry; saved app details are retained.':'Cannot reach FYERS. Check your internet and retry; saved app details are retained.')}
+ let data;try{data=await response.json()}catch{if(response.status===429)throw fyersRateError(fyersRetryAfter(response),false,true);throw Error('Fyers returned an unreadable response (HTTP '+response.status+'). Retry later.')}
+ // HTTP 429 takes precedence over body text mentioning plans or permissions (including code -360).
+ if(response.status===429||Number(data?.code)===-429||/rate.?limit|too many requests/i.test(String(data?.message||'')))throw fyersRateError(fyersRetryAfter(response),/daily|per day|rest of the day|blocked for.*day/i.test(String(data?.message||'')),true);
  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Fyers returned an invalid response (HTTP '+response.status+'). Retry later.');
  if(response.status===401||[-8,-15,-16,-17].includes(Number(data.code)))throw Error('Fyers login expired or invalid. Sign in again in Fyers settings.');
  if(!response.ok||data.s!=='ok'){
- const message=String(data.message||''),hint=/permission|subscription|entitlement|prime|plan/i.test(message)?'Check Market Data permissions and your FYERS plan. Seconds history requires Prime.':response.status===422||/symbol/i.test(message)?'Check the requested FYERS symbol and data parameters. Search/select the instrument; stock symbols usually include their series, for example NSE:TCS-EQ.':/redirect/i.test(message)?'The redirect URL must match the one registered in your FYERS app.':/secret|appid.?hash/i.test(message)?'Check the App Secret paired with this exact App ID.':/auth.?code|authorization.?code/i.test(message)?'The authorization code is invalid or expired. Start FYERS sign-in again.':/client.?id|app.?id/i.test(message)?'Copy the complete App ID, including its original -100 or -200 suffix.':/ip address|static.?ip|whitelist|allowlist/i.test(message)?'Check the approved IP in your FYERS app and the connection used by this server.':response.status===403?'Check the app activation, permissions and approved server IP in FYERS.':response.status===429?'FYERS rate limit reached. Wait before retrying.':'Check app activation, permissions and sign-in.';
+ const message=String(data.message||''),seconds=path==='/data/history'&&/^(?:5|10|15|30|45)S$/.test(new URLSearchParams(query).get('resolution')||''),hint=/permission|subscription|entitlement|prime|plan/i.test(message)?'Check Market Data permissions and your FYERS plan.'+(seconds?' Seconds history requires Prime.':''):response.status===422||/symbol/i.test(message)?'Check the requested FYERS symbol and data parameters. Search/select the instrument; stock symbols usually include their series, for example NSE:TCS-EQ.':/redirect/i.test(message)?'The redirect URL must match the one registered in your FYERS app.':/secret|appid.?hash/i.test(message)?'Check the App Secret paired with this exact App ID.':/auth.?code|authorization.?code/i.test(message)?'The authorization code is invalid or expired. Start FYERS sign-in again.':/client.?id|app.?id/i.test(message)?'Copy the complete App ID, including its original -100 or -200 suffix.':/ip address|static.?ip|whitelist|allowlist/i.test(message)?'Check the approved IP in your FYERS app and the connection used by this server.':response.status===403?'Check the app activation, permissions and approved server IP in FYERS.':'Check app activation, permissions and sign-in.';
  throw Error('FYERS request failed (HTTP '+response.status+', code '+String(Number.isFinite(Number(data.code))?Number(data.code):'unknown')+'). '+hint)
  }return data;
 }
+function fyersRetryAfter(response){const value=response.headers?.get('retry-after');if(!value)return 65;const seconds=Number(value);return Math.max(65,Number.isFinite(seconds)?seconds:(Date.parse(value)-Date.now())/1000||65)}
+async function fyersScanHistory(c,symbol,resolution,from,to){const state=fyersDataSession(c),key=[symbol,resolution,from,to].join('|'),cached=state.history.get(key);if(cached&&Date.now()-cached.at<120000)return cached.data;const d=await fyersCall(c,'/data/history','?'+new URLSearchParams({symbol,resolution,date_format:'0',range_from:String(from),range_to:String(to),cont_flag:'1'}));if(!Array.isArray(d.candles))throw Error('Fyers history unavailable');if(state.history.size>=6)state.history.delete(state.history.keys().next().value);state.history.set(key,{at:Date.now(),data:d});return d}
 function fyersSymbol(s){if(typeof s!=='string'||! /^(NSE|BSE|MCX):[A-Z0-9&._-]{2,65}$/.test(s))throw Error('Use a Fyers symbol, for example NSE:NIFTY50-INDEX or NSE:RELIANCE-EQ');return s}
 function fyersQuote(row){
  const v=row?.v||{},number=x=>x===null||x===undefined||x===''?null:Number.isFinite(Number(x))?Number(x):null,n=number(v.lp),raw=number(v.tt),at=raw===null?null:raw>1e12?raw:raw*1000,now=Date.now();
@@ -89,30 +107,27 @@ async function fyersRoute(request,env){
  if(route==='scan'&&request.method==='GET'){
   const symbol=fyersSymbol(u.searchParams.get('symbol'));
   if(symbol.startsWith('MCX:'))throw Error('MCX scanning needs its own session calendar; quotes are available.');
-  const now=Date.now(),resolutions=['60','240','D'],histories={},errors=[];
-  // At most three concurrent history requests; each timeframe's chunks remain sequential.
-  const results=await Promise.allSettled(resolutions.map(async resolution=>{
-   const raw=[];
+  const now=Date.now(),resolutions=['60','240','D'],histories={},errors=[];let rateLimit=null;
+  // Sequential, session-paced requests avoid the old 3-request burst per stock.
+  for(const resolution of resolutions){const raw=[];try{
    for(let chunk=0;chunk<(resolution==='240'?3:1);chunk++){
-    const to=Math.floor((now-chunk*90*86400000)/1000),from=to-90*86400;
-    const d=await fyersCall(c,'/data/history','?'+new URLSearchParams({symbol,resolution,date_format:'0',range_from:String(from),range_to:String(to),cont_flag:'1'}));
-    if(!Array.isArray(d.candles))throw Error('Fyers history unavailable');raw.push(...d.candles);
+    const to=Math.floor((now-chunk*90*86400000)/60000)*60,from=to-90*86400;
+    const d=await fyersScanHistory(c,symbol,resolution,from,to);raw.push(...d.candles);
    }
-   return equityClosedBars(raw,resolution,now,true);
-  }));
-  results.forEach((r,i)=>{histories[resolutions[i]]=r.status==='fulfilled'?r.value:[];if(r.status==='rejected')errors.push(resolutions[i]+': '+r.reason.message)});
+   histories[resolution]=equityClosedBars(raw,resolution,now,true);
+  }catch(e){histories[resolution]=[];errors.push(resolution+': '+e.message);if(e.rateLimited){rateLimit=e;break}}}
   let quote={symbol,price:null,at:null,valid:false,error:'Quote unavailable'};
-  try{
+  if(!rateLimit)try{
    const response=await fyersCall(c,'/data/quotes','?'+new URLSearchParams({symbols:symbol}));
    if(!Array.isArray(response.d))throw Error('Fyers quotes response is invalid');
    const match=response.d.find(row=>row?.n===symbol||row?.v?.symbol===symbol);
    if(!match)throw Error('Fyers did not return a quote for the requested instrument');
    quote=fyersQuote(match);
-  }catch(e){errors.push('Quote: '+e.message)}
-  return json({asOf:Date.now(),symbol,quote,errors,partial:errors.length>0,results:equitySignals(histories['60'],histories['240'],histories.D,quote),candles:histories['60'].slice(-120)});
+  }catch(e){errors.push('Quote: '+e.message);if(e.rateLimited)rateLimit=e}
+  return json({asOf:Date.now(),symbol,quote,errors,partial:errors.length>0,rateLimited:!!rateLimit,retryAfter:rateLimit?.retryAfter||null,manualRetry:rateLimit?.manualRetry||false,results:equitySignals(histories['60']||[],histories['240']||[],histories.D||[],quote),candles:(histories['60']||[]).slice(-120)});
  }
  return json({error:'This Fyers feature is not enabled. No order was sent.'},404);
- }catch(e){return json({error:e.message||'Fyers unavailable'},400)}
+ }catch(e){return json({error:e.message||'Fyers unavailable',...(e.rateLimited?{rateLimited:true,retryAfter:e.retryAfter,manualRetry:!!e.manualRetry}:{})},e.httpStatus||400)}
 }
 // Exchange sessions contain overnight/weekend gaps: do not reuse crypto's continuous-calendar validator.
 function equityClosedBars(raw,resolution,now,regularSession=false){const duration=['D','1D'].includes(resolution)?86400000:resolution.endsWith('S')?Number(resolution.slice(0,-1))*1000:Number(resolution)*60000;const seen=new Set();return raw.filter(r=>Array.isArray(r)&&r.length>=6).map(r=>({time:Number(r[0])*1000,open:Number(r[1]),high:Number(r[2]),low:Number(r[3]),close:Number(r[4]),volume:Number(r[5])})).filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return c.time<=now&&Object.values(c).every(Number.isFinite)&&c.low>0&&c.high>=Math.max(c.open,c.close)&&c.low<=Math.min(c.open,c.close)&&c.volume>=0&&(['1W','1M'].includes(resolution)?equityPeriodEnd(c.time,resolution):regularSession?equityBarEnd(c.time,resolution):c.time+duration)<=now}).sort((a,b)=>a.time-b.time)}

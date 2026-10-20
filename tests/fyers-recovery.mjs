@@ -8,7 +8,7 @@ class Clock extends Date{static now(){return now}}
 const hourly=Array.from({length:21},(_,i)=>[(now-(21-i)*3600000)/1000,100,101,99,100,10]);
 hourly.at(-1).splice(1,5,100.5,102,100,101.8,30);
 let mode='partial',active=0,peak=0;const calls=[];
-const context=vm.createContext({TextEncoder,TextDecoder,Uint8Array,Date:Clock,crypto:webcrypto,Response,Request,URL,URLSearchParams,AbortSignal,fetch:async(url,options)=>{
+const context=vm.createContext({setTimeout:(fn)=>setImmediate(fn),TextEncoder,TextDecoder,Uint8Array,Date:Clock,crypto:webcrypto,Response,Request,URL,URLSearchParams,AbortSignal,fetch:async(url,options)=>{
  const u=new URL(url);calls.push({path:u.pathname,method:options.method});
  assert.equal(u.origin,'https://api-t1.fyers.in');assert.equal(options.method,'GET');
  active++;peak=Math.max(active,peak);await new Promise(r=>setImmediate(r));active--;
@@ -33,7 +33,7 @@ assert.equal(data.quote.symbol,'NSE:RELIANCE-EQ');assert.equal(data.quote.price,
 assert.equal(data.results.find(r=>r.strategy==='1H volume breakout').status,'Confirmed','independent 1H evidence remains usable');
 assert.equal(data.results.find(r=>r.strategy==='4H 200 EMA consolidation').status,'Unavailable');
 assert.equal(data.results.find(r=>r.strategy==='Golden / death cross').status,'Unavailable');
-assert.ok(peak>1&&peak<=3,'history fetches are bounded and concurrent');
+assert.equal(peak,1,'data calls are sequential and paced');
 mode='missingQuote';data=await (await context.fyersRoute(request('scan?symbol=NSE:RELIANCE-EQ'),env)).json();
 assert.equal(data.quote.valid,false);assert.equal(data.quote.price,null);assert.ok(data.errors.some(e=>/requested instrument/.test(e)));
 assert.notEqual(data.results[0].status,'Confirmed','wrong-symbol quotes cannot confirm an otherwise valid breakout');
@@ -43,4 +43,4 @@ assert.match(data.errors.join(' '),/invalid positions list/);
 mode='null';await assert.rejects(()=>context.fyersCall({appId:'FAKEAPP-100',token:'fake-token'},'/data/quotes'),/invalid response/);
 assert.equal((await context.fyersRoute(request('setup',null),env)).status,400);
 assert.equal(context.equityClosedBars([null,{},hourly[0]],'60',now,true).length,1);
-console.log('PASS FYERS partial-history recovery, bounded concurrency, exact-symbol quote confirmation, malformed account isolation and invalid JSON handling; no real network or orders');
+console.log('PASS FYERS partial-history recovery, sequential data pacing, exact-symbol quote confirmation, malformed account isolation and invalid JSON handling; no real network or orders');
