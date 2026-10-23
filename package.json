@@ -5,7 +5,8 @@
   "scripts": {
     "build": "python build-worker.py",
     "db:generate": "drizzle-kit generate",
-    "test": "node --test tests/*.mjs"
+    "test": "node --test tests/*.mjs",
+    "dev": "node chart-preview.mjs"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.4",
