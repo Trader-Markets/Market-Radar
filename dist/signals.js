@@ -89,5 +89,13 @@ function scanAvailable(h,f,d=[]){
  return {signals,plans};
 }
 
-window.StrategySignals={sweeps,breakoutGuard,needsDaily,timestamp,assess,scanAvailable,calendarBars,multiFrame,evaluate,ema,atr,plan,size,backtest,simulate,wilson,rules,maintenance,liquidation};
+function emaVolumeBreakout(input,now=Date.now()){
+ const step=14400000,bars=(input??[]).filter(c=>Number.isFinite(c.time)&&c.time+step<=now),latest=Math.floor(now/step)*step-step;
+ if(bars.length<221)return {available:false,match:false,reason:'Needs at least 221 closed 4H candles'};
+ if(bars.at(-1).time!==latest||bars.some((c,i)=>!([c.open,c.high,c.low,c.close].every(Number.isFinite)&&c.time%step===0&&c.open>0&&c.close>0&&c.low>0&&c.high>=Math.max(c.open,c.close)&&c.low<=Math.min(c.open,c.close)&&Number.isFinite(c.volume)&&c.volume>=0)||i&&c.time-bars[i-1].time!==step))return {available:false,match:false,reason:'Stale, invalid or missing 4H candles'};
+ const current=bars.at(-1),previous=bars.at(-2),level=ema(bars),previousEma=ema(bars.slice(0,-1)),usual=avg(bars.slice(-21,-1).map(c=>c.volume)),ratio=usual>0?current.volume/usual:null;
+ const crossed=previous.close<=previousEma&&current.close>level,match=crossed&&ratio!==null&&ratio>=2;
+ return {available:ratio!==null,match,ema:level,previousEma,close:current.close,closedAt:current.time+step,ratio,reason:ratio===null?'Volume baseline unavailable':!crossed?'No new upside 200 EMA cross':ratio<2?'Volume below 2× average':'Closed above 200 EMA with high volume'};
+}
+window.StrategySignals={emaVolumeBreakout,sweeps,breakoutGuard,needsDaily,timestamp,assess,scanAvailable,calendarBars,multiFrame,evaluate,ema,atr,plan,size,backtest,simulate,wilson,rules,maintenance,liquidation};
 })();

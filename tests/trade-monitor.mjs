@@ -53,3 +53,11 @@ try{
  env.BACKGROUND_SERVICE_ENABLED='false';assert.equal((await call('/api/trade-monitor/run',{deliver:false},{'content-type':'application/json'})).r.status,403);
  console.log('PASS trade tracking: long/short, all four strategies, stop latch, stale data, actual fills, no fill promotion, account outage, changed position, closure, durable dedup, owner isolation and private background updater; no real orders or messages');
 }finally{globalThis.fetch=original;store.close();rmSync(dir,{recursive:true,force:true})}
+
+// Active-stop quantity must not count cancelled, invalid-price or duplicate records.
+const pos={positions:[{product_id:1,size:3,entry_price:100}],orders:[]},track={exchange:'delta',productId:1};const stop={id:1,product_id:1,side:'sell',stop_order_type:'stop_loss_order',stop_price:95,size:2,state:'open'};
+for(const orders of [[stop,{...stop}],[{...stop,size:3,state:'cancelled'}],[{...stop,size:3,stop_price:0}],[{...stop,size:3,stop_order_type:null,stop_price:null,bracket_stop_loss_price:95}]])assert.equal(ctx.monitorPosition(track,{...pos,orders}).protected,false);
+assert.equal(ctx.monitorPosition(track,{...pos,orders:[{...stop,size:3}]}).protected,true);
+console.log('PASS stop coverage rejects duplicate, cancelled and invalid-price records');
+
+assert.throws(()=>ctx.monitorPosition(track,{positions:[{product_id:1,size:null,entry_price:100}],orders:[]}),/closure cannot be verified/);

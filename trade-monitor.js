@@ -69,14 +69,15 @@ async function monitorAccount(env,owner,ex){
 }
 function monitorPosition(t,account){
  const delta=t.exchange==='delta';
- const positions=account.positions.filter(p=>delta?p.product_id===t.productId&&+p.size!==0:p.contractPair===t.symbol&&p.positionStatus==='OPEN');
+ const matched=account.positions.filter(p=>delta?p.product_id===t.productId:p.contractPair===t.symbol);if(matched.some(p=>delta?p.size==null||p.size===''||!Number.isFinite(Number(p.size)):!['OPEN','CLOSED','LIQUIDATED'].includes(p.positionStatus)))throw Error('Position state or size unavailable; closure cannot be verified');const positions=matched.filter(p=>delta?+p.size!==0:p.positionStatus==='OPEN');
  if(positions.length>1)throw Error('Multiple positions require review');const p=positions[0];if(!p)return null;
  const side=delta?(+p.size>0?1:-1):p.positionType==='LONG'?1:p.positionType==='SHORT'?-1:0,entry=+(delta?p.entry_price:p.entryPrice),size=Math.abs(+(delta?p.size:p.quantity));
  if(!side||!(entry>0)||!(size>0))throw Error('Position incomplete');
- const stops=account.orders.filter(o=>delta?o.product_id===t.productId&&o.side===(side===1?'sell':'buy')&&(o.stop_order_type==='stop_loss_order'||+o.bracket_stop_loss_price>0):o.symbol===t.symbol&&o.side===(side===1?'SELL':'BUY')&&o.placeType==='POSITION'&&o.subType==='STOP_LOSS');
+ const seenStops=new Set();const stops=account.orders.filter(o=>delta?o.product_id===t.productId&&o.side===(side===1?'sell':'buy')&&o.stop_order_type==='stop_loss_order':o.symbol===t.symbol&&o.side===(side===1?'SELL':'BUY')&&o.placeType==='POSITION'&&o.subType==='STOP_LOSS');
+ const usableStops=stops.filter(o=>{const price=+(delta?(o.stop_price??o.bracket_stop_loss_price):(o.stopPrice??o.price)),qty=Math.abs(+(delta?(o.unfilled_size??o.size):o.orderAmount)),state=String(o.state??o.status??'').toLowerCase();if(!(price>0)||!Number.isFinite(price)||!(qty>0)||!Number.isFinite(qty)||state&&!['open','pending','untriggered','new','active','partially_filled'].includes(state))return false;const key=o.id??o.orderId??JSON.stringify([price,qty,o.side]);if(seenStops.has(String(key)))return false;seenStops.add(String(key));return true});
  // Full protective coverage cannot be inferred from an unrelated or undersized order.
- const covered=stops.reduce((n,o)=>n+Math.abs(+(delta?(o.unfilled_size??o.size):o.orderAmount)||0),0)>=size;
- const stopPrices=stops.map(o=>+(delta?(o.stop_price??o.bracket_stop_loss_price):(o.stopPrice??o.price))).filter(v=>Number.isFinite(v)&&v>0);const stop=covered&&stopPrices.length?(side===1?Math.min(...stopPrices):Math.max(...stopPrices)):null;
+ const covered=usableStops.reduce((n,o)=>n+Math.abs(+(delta?(o.unfilled_size??o.size):o.orderAmount)||0),0)>=size;
+ const stopPrices=usableStops.map(o=>+(delta?(o.stop_price??o.bracket_stop_loss_price):(o.stopPrice??o.price))).filter(v=>Number.isFinite(v)&&v>0);const stop=covered&&stopPrices.length?(side===1?Math.min(...stopPrices):Math.max(...stopPrices)):null;
  return {side,entry,size,stop,liquidation:+(delta?p.liquidation_price:p.liquidationPrice)||null,protected:covered,positionId:p.positionId??null};
 }
 async function monitorRun(env,owner,origin,deliver=true){

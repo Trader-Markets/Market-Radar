@@ -13,9 +13,9 @@ document.querySelector('.stock-company button:nth-of-type(2)').click();assert.de
 const filter=document.querySelector('#aiTracking');filter.value='saved';filter.onchange();assert.equal(document.querySelectorAll('.stock-company').length,1);
 document.querySelector('.stock-company button:nth-of-type(2)').click();assert.equal(document.querySelectorAll('.stock-company').length,0);
 document.querySelector('[data-stock-tab="screener"]').click();assert.ok(document.querySelector('script[src*="screener"]'));
-const market=document.querySelector('#equityMarket');market.value='india';market.onchange();assert.equal(JSON.parse(document.querySelector('script[src*="screener"]').textContent).market,'india');
+const market=document.querySelector('#equityMarket');market.value='japan';market.onchange();assert.equal(document.querySelector('script[src*="screener"]'),null);assert.match(document.querySelector('#stockContent').textContent,/No US results are substituted/);market.value='us';market.onchange();
 document.querySelector('script[src*="screener"]').onerror();assert.match(document.querySelector('.stock-status').textContent,/could not load/);
-document.querySelector('[data-stock-tab="indices"]').click();document.querySelector('[data-stock-tab="screener"]').click();assert.equal(document.querySelector('#equityMarket').value,'india');assert.ok(JSON.parse(document.querySelector('script[src*="screener"]').textContent).height>=600);document.querySelector('script[src*="screener"]').onload();assert.match(document.querySelector('.stock-status').textContent,/Panel script loaded/);
+document.querySelector('[data-stock-tab="indices"]').click();document.querySelector('[data-stock-tab="screener"]').click();assert.equal(document.querySelector('#equityMarket').value,'us');assert.ok(JSON.parse(document.querySelector('script[src*="screener"]').textContent).height>=600);document.querySelector('script[src*="screener"]').onload();assert.match(document.querySelector('.stock-status').textContent,/Provider panel loaded/);
 document.querySelector('[data-asset="crypto"]').click();assert.equal(document.querySelector('#crypto').hidden,false);assert.equal(document.querySelectorAll('.stock-widget').length,0);assert.ok(document.querySelector('#trade'));
 console.log('Stocks workspace isolation, indices, filtering, tracking, provider configuration and failure states passed');
 
@@ -33,6 +33,29 @@ assert.match(quoteHost.textContent,/If a symbol is restricted/);
 
 // Restricted NSE symbols never create a known-blocked chart frame.
 document.querySelector('[data-index-symbol="NSE:NIFTY"]').click();
-const restricted=document.querySelector('#selectedIndexChart');assert.equal(restricted.querySelectorAll('script[src*=advanced-chart]').length,0,'never show a fallback US chart for an Indian index');assert.match(restricted.textContent,/Open NSE:NIFTY/);
-const provider=document.querySelector('script[src*=market-quotes]').parentElement.parentElement;const collapse=[...provider.querySelectorAll('button')].find(b=>b.textContent==='Hide unavailable panel');collapse.click();assert.equal(provider.querySelector('.stock-widget').hidden,true);collapse.click();assert.equal(provider.querySelector('.stock-widget').hidden,false);assert.ok(provider.querySelector('.stock-provider-actions a'));
+const restricted=document.querySelector('#selectedIndexChart');assert.equal(restricted.querySelectorAll('script[src*=advanced-chart]').length,0,'never show a fallback US chart for an Indian index');assert.match(restricted.textContent,/Dhan chart tools unavailable/);
+const provider=document.querySelector('script[src*=market-quotes]').parentElement.parentElement;const collapse=[...provider.querySelectorAll('button')].find(b=>b.textContent==='Hide provider panel');collapse.click();assert.equal(provider.querySelector('.stock-widget').hidden,true);collapse.click();assert.equal(provider.querySelector('.stock-widget').hidden,false);assert.ok(provider.querySelector('.stock-provider-actions a'));
 console.log('PASS direct NSE TradingView chart, visible provider escape links and reversible unavailable-panel controls');
+
+// Reference mode uses the same labelled source for quotes and chart; cash mode is explicit.
+document.querySelector('[data-asset="indices"]').click();
+const refMode=document.querySelector('#indexQuoteMode');refMode.value='references';refMode.onchange();
+const reg=document.querySelector('#stockRegion');reg.value='Americas';reg.onchange();
+const config=JSON.parse(document.querySelector('script[src*=advanced-chart]').textContent);
+assert.equal(config.symbol,'FOREXCOM:SPXUSD');assert.match(document.querySelector('#selectedIndexChart').textContent,/cash CFD/);
+document.querySelector('#indexQuoteMode').value='cash';document.querySelector('#indexQuoteMode').onchange();
+assert.equal(document.querySelector('#selectedIndexChart script'),null);assert.match(document.querySelector('#selectedIndexChart a').getAttribute('href'),/SP%3ASPX/);
+// Global chart entry keeps exact symbols, rejects unqualified or Indian input, and clears on leave.
+document.querySelector('[data-stock-tab="chart"]').click();const input=document.querySelector('#globalChartSymbol'),form=document.querySelector('#globalChartForm');input.value='NYSE:IBM';form.onsubmit({preventDefault(){}});assert.equal(JSON.parse(document.querySelector('script[src*=advanced-chart]').textContent).symbol,'NYSE:IBM');
+input.value='MSFT';form.onsubmit({preventDefault(){}});assert.match(document.querySelector('#globalChartStatus').textContent,/exact exchange/);
+input.value='NSE:TCS';form.onsubmit({preventDefault(){}});assert.match(document.querySelector('#globalChartStatus').textContent,/Indian Markets/);
+document.querySelector('[data-asset="crypto"]').click();assert.equal(document.querySelector('#stockContent').children.length,0);
+console.log('PASS global reference/cash source alignment, exact stock chart input and workspace cleanup');
+
+// Dispose timers and callbacks when replacing or leaving a provider panel.
+const second=parseHTML('<html><head></head><body><main></main></body></html>'),timers=new Map();let seq=0;
+vm.runInNewContext(fs.readFileSync('dist/stocks.js','utf8'),{document:second.document,localStorage:{getItem:()=>null,setItem(){}},setTimeout:fn=>{timers.set(++seq,fn);return seq},clearTimeout:id=>timers.delete(id)});
+second.document.querySelector('[data-asset="stocks"]').click();const oldScript=second.document.querySelector('script'),oldCallback=oldScript.onload;
+second.document.querySelector('#equityColumns').value='performance';second.document.querySelector('#equityColumns').onchange();oldCallback();assert.equal(second.document.querySelector('.stock-status').textContent,'Loading provider panel…');assert.equal(timers.size,1);
+second.document.querySelector('[data-asset="crypto"]').click();assert.equal(timers.size,0);assert.equal(oldScript.onload,null);
+console.log('PASS replaced panels discard stale callbacks and navigation cancels provider timers');

@@ -6,8 +6,8 @@ const task=startLocalWatchlist({worker,env:{TRADE_OWNER_EMAIL:'owner@test'},orig
 await task.tick();assert.equal(calls.length,1,'defaults do not start an unsaved scanner');
 saved={configured:true,settings:{enabled:false}};await task.tick();assert.equal(calls.filter(x=>x.method==='POST').length,0,'paused settings respected');
 saved.settings.enabled=true;await handler();assert.deepEqual(calls.at(-1),{path:'/api/background/run',method:'POST',body:{deliver:true}});
-saved.last={slot:Math.floor(Date.now()/3600000),completedAt:Date.now()};const before=calls.length;await task.tick();assert.equal(calls.length,before+1,'completed hourly scan not rerun');
-delete saved.last;release={};const first=task.tick();await new Promise(r=>setImmediate(r));const count=calls.length;await task.tick();assert.equal(calls.length,count,'no overlapping scan');release.resolve(Response.json({}));await first;release=null;
+saved.last={slot:Math.floor(Date.now()/60000),completedAt:Date.now()};const before=calls.length;await task.tick();assert.equal(calls.length,before+1,'completed minute scan not rerun');
+saved.last.slot--;const nextMinute=calls.length;await task.tick();assert.equal(calls.length,nextMinute+2,'next minute is due');delete saved.last;release={};const first=task.tick();await new Promise(r=>setImmediate(r));const count=calls.length;await task.tick();assert.equal(calls.length,count,'no overlapping scan');release.resolve(Response.json({}));await first;release=null;
 worker.fetch=async()=>{throw Error('offline')};await task.tick();assert.equal(errorCount,1);worker.fetch=async()=>Response.json(saved);await task.tick();
 task.stop();assert.equal(cleared,true);await task.tick();assert.equal(errorCount,1);
-console.log('PASS local saved watchlist: explicit configuration, pause, hourly completion, duplicate suppression, error recovery and shutdown; no live alerts sent');
+console.log('PASS local saved watchlist: explicit configuration, pause, minute completion, duplicate suppression, error recovery and shutdown; no live alerts sent');

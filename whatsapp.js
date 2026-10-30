@@ -6,6 +6,16 @@ async function whatsappRoute(request,env,backgroundOwner=null){
  const q=(sql,...args)=>env.DB.prepare(sql).bind(...args);
  try{
   let saved=await q('SELECT * FROM whatsapp_settings WHERE owner = ?',owner).first();
+  if(request.method==='GET'&&u.searchParams.get('delivery')==='latest'){
+   if(!saved)return json({delivery:{status:'unverified',delivered:false,note:'No saved WhatsApp settings.'}});
+   const event=await q('SELECT * FROM whatsapp_events WHERE owner = ? ORDER BY created_at DESC LIMIT 1',owner).first();
+   if(!event?.provider_sid||! /^(SM|MM)[a-f0-9]{32}$/i.test(event.provider_sid))return json({delivery:{status:'unverified',delivered:false,note:'No recorded provider message ID. Older or uncertain sends cannot be verified here.'}});
+   const c=await unseal(saved.cipher,env.TRADE_SESSION_SECRET);let response;try{response=await fetch('https://api.twilio.com/2010-04-01/Accounts/'+c.sid+'/Messages/'+event.provider_sid+'.json',{method:'GET',headers:{Authorization:'Basic '+btoa(c.sid+':'+c.token)},signal:AbortSignal.timeout(15000)})}catch{return json({error:'Delivery status unavailable; no new message was sent.'},502)}
+   const d=await response.json().catch(()=>null),statuses=['accepted','scheduled','canceled','queued','sending','sent','failed','delivered','undelivered','read'];
+   if(!response.ok||!d||d.sid!==event.provider_sid||d.account_sid!==c.sid||d.to!=='whatsapp:'+c.to||!statuses.includes(d.status))return json({error:'Provider delivery response could not be verified; check Twilio logs. No new message was sent.'},502);
+   await q('UPDATE whatsapp_events SET delivery_status = ? WHERE id = ? AND owner = ?',d.status,event.id,owner).run();
+   return json({delivery:{status:d.status,delivered:['delivered','read'].includes(d.status),read:d.status==='read',checkedAt:Date.now(),note:['delivered','read'].includes(d.status)?'Provider reports delivery.':'Delivery is not confirmed; '+d.status+'.'}});
+  }
   if(request.method==='GET'){let c=saved?await unseal(saved.cipher,env.TRADE_SESSION_SECRET):null;return json({configured:!!saved,enabled:!!saved?.enabled,forming:!!saved?.forming,updates:!!saved?.updates,to:c?.to??'',from:c?.from??'',sid:c?.sid??'',content:c?.content??'',titleOnly:!!c?.titleOnly,lastAt:saved?.last_at??0});}
   if(request.method!=='POST')return json({error:'Method not allowed'},405);
   if(request.headers.get('origin')!==u.origin||!request.headers.get('content-type')?.startsWith('application/json'))return json({error:'Same-origin JSON required'},403);
@@ -38,6 +48,7 @@ async function whatsappRoute(request,env,backgroundOwner=null){
   let result=await response.json().catch(()=>({}));
   await q('UPDATE whatsapp_events SET status = ? WHERE id = ?',response.ok?'accepted':'failed',key).run();
   await q('DELETE FROM whatsapp_events WHERE owner = ? AND created_at < ?',owner,Date.now()-30*86400000).run();
+  if(response.ok&&/^(SM|MM)[a-f0-9]{32}$/i.test(result.sid||''))await q('UPDATE whatsapp_events SET provider_sid = ? WHERE id = ? AND owner = ?',result.sid,key,owner).run();
   if(!response.ok)return json({error:'WhatsApp provider rejected the message'+(Number.isInteger(result.code)?' (code '+result.code+')':'')+'. Check sender, template approval and recipient in Twilio.'},502);
   return json({accepted:true,note:'Accepted by WhatsApp provider; delivery is not yet confirmed.'});
  }catch(e){return json({error:e.message?.startsWith('Enter ')||e.message?.startsWith('Confirm ')||e.message?.startsWith('Invalid ')||e.message==='Alert is stale'?e.message:'WhatsApp settings or storage unavailable. Try again.'},400)}

@@ -1,16 +1,23 @@
 import {parseHTML} from 'linkedom';
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const intervals=[];
 const {window,document}=parseHTML(fs.readFileSync('dist/index.html','utf8'));
 // A DOM integration check with network and timers isolated; it submits no orders.
 Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return this._value??this.querySelector('option[selected]')?.value??this.querySelector('option')?.value??''},set(v){this._value=String(v)}});
 Object.defineProperty(window.HTMLSelectElement.prototype,'options',{get(){return [...this.querySelectorAll('option')]}});
 for(let el of document.querySelectorAll('input'))if(!el.value)el.value=el.getAttribute('value')??'';
-const context=vm.createContext({window,document,console,Date,Math,Number,String,Intl,JSON,Map,Set,Promise,Array,AbortSignal,URL,URLSearchParams,localStorage:{getItem:()=>null,setItem:()=>{}},setInterval:()=>0,clearInterval:()=>{},setTimeout:()=>0,clearTimeout:()=>{},queueMicrotask:()=>{},fetch:async()=>{throw Error('Network isolated in DOM test')},location:{hostname:'localhost',origin:'http://localhost'},navigator:{},ResizeObserver:class{observe(){}},requestAnimationFrame:()=>0});
+const context=vm.createContext({window,document,console,Date,Math,Number,String,Intl,JSON,Map,Set,Promise,Array,AbortSignal,URL,URLSearchParams,localStorage:{getItem:()=>null,setItem:()=>{}},setInterval:(fn,ms)=>{intervals.push({fn,ms});return 0},clearInterval:()=>{},setTimeout:()=>0,clearTimeout:()=>{},queueMicrotask:()=>{},fetch:async()=>{throw Error('Network isolated in DOM test')},location:{hostname:'localhost',origin:'http://localhost'},navigator:{},ResizeObserver:class{observe(){}},requestAnimationFrame:()=>0});
 for(let f of ['customer-flow','signals','custom-alert-rules']){vm.runInContext(fs.readFileSync('dist/'+f+'.js','utf8'),context);const names={'customer-flow':'CustomerFlow',signals:'StrategySignals','custom-alert-rules':'CustomAlertRules'};context[names[f]]=window[names[f]];}
 vm.runInContext(fs.readFileSync('dist/app.js','utf8'),context);
 // Switching setup tools preserves controls and shows exactly one readable section.
 const setupButtons=[...document.querySelectorAll('[data-setup-view]')];
-assert.equal(setupButtons.length,6);
+assert.equal(setupButtons.length,8);
+assert.ok(document.getElementById('activityPanel').closest('#strategyView'));
+assert.equal(document.getElementById('activityPanel').closest('#surgePanel'),null);
+document.querySelector('[data-setup-view="activity"]').click();
+assert.equal(document.getElementById('activityPanel').classList.contains('hide'),false);
+assert.ok(document.getElementById('activityStart'));
+assert.match(document.getElementById('activityPanel').textContent,/no account login or API key/);
 for(const button of setupButtons){
  button.click();
  assert.equal(document.querySelectorAll('.setup-section:not(.hide)').length,1);
@@ -295,3 +302,104 @@ assert.equal(vm.runInContext('chartData.lastPrice',context),102);
 console.log('PASS direct trade ticks, source timestamps, stale/out-of-order rejection, streamed order book and cancelled stream isolation');
 await assert.rejects(()=>context.accountResponse(Response.json(null),'Delta'),/invalid response/);
 await assert.rejects(()=>context.accountResponse(new Response('{',{headers:{'content-type':'application/json'}}),'WhatsApp'),/unreadable response/);
+
+// Actual activity-tab controls: start enables the shared engine; pause stops only activity.
+let activitySettings={enabled:false,earlyEnabled:false,exchange:'delta',quote:'USD'},activityCalls=[];
+context.fetch=async(url,o={})=>{assert.equal(String(url),'/api/surge');const body=o.body?JSON.parse(o.body):null;if(body){activityCalls.push(body.action);if(body.action==='early')activitySettings.earlyEnabled=body.enabled;if(body.action==='start')activitySettings.enabled=true;}return Response.json({settings:{...activitySettings},job:null,alerts:[],earlyWarnings:[],collector:{mode:'local',sources:[{venue:'bybit',connected:true,subscribed:2,lastReceivedAt:Date.now(),warmupMinutes:55},{venue:'binance',connected:false,subscribed:0}]}})};
+vm.runInContext("$('exchange').value='delta';quote='USD';surgeBusy=false;activityStatusBusy=false;",context);
+document.getElementById('activityStart').click();for(let i=0;i<12;i++)await new Promise(r=>setImmediate(r));
+assert.deepEqual(activityCalls,['early','start']);assert.equal(document.getElementById('activityStart').disabled,true);assert.equal(document.getElementById('activityStart').textContent,'Continuous scan enabled');vm.runInContext('renderActivityStatus()',context);assert.equal(document.getElementById('activityStart').disabled,true);assert.match(document.getElementById('activityScanStatus').textContent,/Continuous scan enabled/);assert.match(document.getElementById('activityConnections').textContent,/Connected · 2 markets/);assert.match(document.getElementById('activityConnections').textContent,/warming up 55 min/);
+document.getElementById('activityPause').click();for(let i=0;i<12;i++)await new Promise(r=>setImmediate(r));assert.equal(activitySettings.earlyEnabled,false);assert.equal(activitySettings.enabled,true);assert.equal(document.getElementById('activityStart').disabled,false);assert.equal(document.getElementById('activityStart').textContent,'Start continuous scan');assert.match(document.getElementById('activityScanStatus').textContent,/Early Rally Radar paused/);
+context.fetch=async()=>{throw Error('Feed status test outage')};document.getElementById('activityRefresh').click();for(let i=0;i<5;i++)await new Promise(r=>setImmediate(r));assert.match(document.getElementById('activityScanStatus').textContent,/Connection status unavailable/);assert(!document.getElementById('activityConnections').textContent.includes('Connected'));
+console.log('PASS activity tab start, pause, source connection status, warmup and outage handling; isolated network only');
+
+// Failed start restores a usable retry; failed saved jobs must never look running.
+document.getElementById('activityStart').click();for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.equal(document.getElementById('activityStart').disabled,false);assert.match(document.getElementById('activityScanStatus').textContent,/Feed status test outage/);
+vm.runInContext("surgeState={settings:{enabled:true,earlyEnabled:true},job:{phase:'failed',error:'Provider outage'}};renderActivityStatus();",context);assert.equal(document.getElementById('activityStart').disabled,false);assert.equal(document.getElementById('activityStart').textContent,'Retry continuous scan');
+console.log('PASS activity start remains disabled while enabled, restores after pause/failure, and exposes retry for failed jobs');
+
+assert.match(document.getElementById('activityScanStatus').textContent,/Scan needs attention/);
+// Automatic crypto rescans must not compete with an active non-crypto workspace.
+const autoTick=intervals.find(x=>x.ms===60000&&String(x.fn).includes('autoScan'));assert(autoTick);const realRun=context.runStrategy;let automaticRuns=0;context.runStrategy=()=>automaticRuns++;vm.runInContext("$('autoScan').checked=true;$('runStrategy').disabled=false;listings=[{symbol:'BTCUSD'}];document.querySelector('main').hidden=true;",context);autoTick.fn();assert.equal(automaticRuns,1);document.querySelector('main').hidden=false;autoTick.fn();assert.equal(automaticRuns,2);context.runStrategy=realRun;
+// The screenshot's three-day-old ARIA detection must never look like a recent signal.
+vm.runInContext(`{
+ const now=Date.now(),old={key:'old',title:'EARLY WARNING · ARIAUSD · UPSIDE ACTIVITY · 26 Oct, 00:50 IST',at:now-3*86400000,symbol:'ARIAUSD',exchange:'delta',quote:'USD',evidence:{side:1}},fresh={...old,key:'fresh',title:'EARLY WARNING · BTCUSD',symbol:'BTCUSD',at:now-60000};
+ surgeState={settings:{enabled:true,earlyEnabled:true},earlyWarnings:[old,fresh],job:{exchange:'delta',quote:'USD',phase:'done',rows:[{symbol:'BTCUSD',activity:{warning:true,quoteFresh:true,side:1,observedAt:now}}]}};renderActivityWarnings();
+}`,context);
+assert.match(document.getElementById('activityWarningHistory').textContent,/HISTORICAL · EARLY WARNING · ARIAUSD/);assert(!document.getElementById('activityWarningHistory').textContent.includes('BTCUSD'));
+vm.runInContext('surgeState.job.rows[0].activity.warning=false;renderActivityWarnings()',context);assert.match(document.getElementById('activityWarningHistory').textContent,/BTCUSD/);assert.match(document.getElementById('activityWarnings').textContent,/No recent warning/);
+vm.runInContext('surgeState.settings.enabled=false;renderActivityWarnings()',context);assert.match(document.getElementById('activityWarnings').textContent,/No recent warning/);
+// New simple scanner lives inside Market scanner; matches need a fresh price still above EMA.
+const emaBars=()=>Array.from({length:330},(_,i)=>({time:Math.floor(Date.now()/14400000)*14400000-(330-i)*14400000,open:100,high:i===329?102.1:100.1,low:99.9,close:i===329?102:100,volume:i===329?30:10}));
+context.candles=async(ex,symbol)=>symbol==='SHORTUSD'?emaBars().slice(-100):emaBars();context.fetchJson=async(ex,path)=>({result:{close:path.includes('ETHUSD')?99:102,timestamp:Date.now()*1000}});
+vm.runInContext("$('exchange').value='delta';quote='USD';$('minVolume').value='0';listings=['BTCUSD','ETHUSD','SHORTUSD'].map(symbol=>({symbol,base:symbol.slice(0,-3),exchange:'delta',quote:'USD',volume:1000000}));",context);
+document.querySelector('[data-setup-view="scanner"]').click();document.getElementById('emaVolumeMode').click();assert.equal(document.getElementById('emaVolumePanel').hidden,false);assert.equal(document.getElementById('emaVolumeMode').getAttribute('aria-pressed'),'true');document.getElementById('emaVolumeScan').click();for(let i=0;i<25;i++)await new Promise(r=>setImmediate(r));
+assert.match(document.getElementById('emaVolumeStatus').textContent,/1 matches · 1 unavailable/);assert.ok(document.querySelector('[data-ema-volume-chart="BTCUSD"]'));assert.equal(document.querySelector('[data-ema-volume-chart="ETHUSD"]'),null);assert.match(document.getElementById('emaVolumeResults').textContent,/SHORTUSD/);assert.equal(document.getElementById('emaVolumeScan').disabled,false);
+let resolveEma;context.candles=()=>new Promise(r=>resolveEma=r);document.getElementById('emaVolumeScan').click();document.getElementById('emaVolumeStop').click();resolveEma(emaBars());for(let i=0;i<5;i++)await new Promise(r=>setImmediate(r));assert.match(document.getElementById('emaVolumeStatus').textContent,/Scan stopped/);assert.equal(document.querySelector('[data-ema-volume-chart="BTCUSD"]'),null);
+document.querySelector('[data-mode="scalp"]').click();assert.equal(document.getElementById('emaVolumePanel').hidden,true);assert.equal(document.getElementById('emaVolumeMode').getAttribute('aria-pressed'),'false');assert.equal(document.querySelectorAll('[data-setup-view]').length,8);
+console.log('PASS simple EMA volume scanner: exact location, closed signal, fresh holding price, unavailable history, stop race and original strategy restoration');
+// Early Rally UI keeps provenance visible and never overwrites an edited evidence form.
+const reviewed={revision:'r1',project:'Example token on native network',catalyst:'Published adoption report <img src=x>',eventDate:new Date().toISOString().slice(0,10),reviewedAt:Date.now(),identityReviewed:true,sources:{catalyst:'https://project.example/report',unlock:'https://project.example/vesting',security:'https://project.example/security',concentration:'https://project.example/holders'},risks:{unlock:'clear',security:'clear',concentration:'clear'},provenance:'Owner-reviewed sources; not independently verified by the scanner'};
+let rallyResponse={exchange:'delta',quote:'USD',settings:{enabled:true,earlyEnabled:true},rows:['BTCUSD','ETHUSD'].map(symbol=>({symbol,candidate:true,status:'QUALIFIED',reasons:['3× volume','Retest held','Owner-reviewed sources'],risks:[],missing:[],checkedAt:Date.now(),invalidation:99,review:{...reviewed}})),history:[]};let submitted=null,denySave=false;
+context.fetch=async(url,o={})=>{assert.equal(String(url),'/api/early-rally');if(o.method==='POST'){submitted=JSON.parse(o.body);if(denySave)return Response.json({error:'Review changed. Reload before saving.'},{status:409});rallyResponse.rows[0].review={...submitted,revision:'r2',reviewedAt:Date.now(),provenance:reviewed.provenance};}return Response.json(rallyResponse)};
+await context.refreshEarlyRally();assert.match(document.getElementById('rallyStatus').textContent,/not automatically researched/);assert.equal(document.getElementById('rallyResults').querySelector('img'),null);document.querySelector('[data-rally-review="BTCUSD"]').click();document.getElementById('rallyCatalyst').value='My unsaved evidence';document.getElementById('rallyReviewForm').dispatchEvent(new window.Event('input',{bubbles:true}));await context.refreshEarlyRally();document.querySelector('[data-rally-review="BTCUSD"]').click();assert.equal(document.getElementById('rallyCatalyst').value,'My unsaved evidence');document.querySelector('[data-rally-review="ETHUSD"]').click();assert.match(document.getElementById('rallyStatus').textContent,/Save or close/);
+document.getElementById('rallyReviewForm').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true}));for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.equal(submitted.revision,'r1');assert.equal(submitted.catalyst,'My unsaved evidence');assert.match(document.getElementById('rallyReviewStatus').textContent,/Owner review saved/);assert.equal(document.getElementById('rallySave').disabled,false);
+denySave=true;document.getElementById('rallyReviewForm').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true}));for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.match(document.getElementById('rallyReviewStatus').textContent,/Review changed/);assert.equal(document.getElementById('rallyCatalyst').value,'My unsaved evidence');
+context.fetch=async()=>{throw Error('Rally API offline')};await context.refreshEarlyRally();assert.match(document.getElementById('rallyStatus').textContent,/Radar unavailable/);assert.equal(document.getElementById('rallyResults').textContent.includes('QUALIFIED'),false);
+console.log('PASS Early Rally evidence UI: sourced review, escaping, dirty form preservation, revision conflict and unavailable-state clearing');
+// Live anomaly warnings stay separate from owner-reviewed qualification cards.
+context.impulseFixture={active:true,connected:true,total:41,ready:39,lastSourceAt:Date.now()-500,events:[{key:'fixture-volume',symbol:'HYPEUSD',at:Date.now()-180000,title:'VOLUME SURGE · HYPEUSD · UP 4.1% · 121.5× VOLUME · FORMING'}]};
+vm.runInContext('renderImpulse(impulseFixture,true)',context);
+assert.match(document.getElementById('impulseStatus').textContent,/LIVE · 39\/41/);
+assert.match(document.getElementById('impulseAlerts').textContent,/HYPEUSD.*FORMING/);
+vm.runInContext('renderImpulse(impulseFixture,false)',context);
+assert.match(document.getElementById('impulseStatus').textContent,/Paused/);
+vm.runInContext('renderImpulse({...impulseFixture,lastSourceAt:Date.now()-20000},true)',context);
+assert.doesNotMatch(document.getElementById('impulseStatus').textContent,/^LIVE/);
+
+assert.ok(document.getElementById('impulsePanel').closest('#strategyView'));
+assert.equal(document.getElementById('impulsePanel').closest('#activityPanel'),null);
+document.querySelector('[data-setup-view="impulse"]').click();
+assert.equal(document.getElementById('impulsePanel').classList.contains('hide'),false);
+assert.equal(document.getElementById('activityPanel').classList.contains('hide'),true);
+assert.equal(document.querySelectorAll('.setup-section:not(.hide)').length,1);
+vm.runInContext("surgeState={settings:{enabled:true,earlyEnabled:true},job:{phase:'done'}};surgeBusy=false;activityStarting=false;syncActivityStart()",context);
+assert.equal(document.getElementById('impulseStart').disabled,true);
+assert.match(document.getElementById('impulseStart').textContent,/enabled/);
+assert.equal(document.getElementById('impulsePause').disabled,false);
+
+context.revalidatedWarning={key:'checked-now',symbol:'HYPEUSD',at:Date.now(),level:100,side:1,title:'VOLUME SURGE · HYPEUSD · FORMING',validation:{status:'HOLDING',price:102,sourceAt:Date.now(),checkedAt:Date.now(),reason:'Beyond original level'}};
+vm.runInContext('renderImpulse({...impulseFixture,events:[revalidatedWarning]},true)',context);
+assert.match(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/HOLDING BREAKOUT NOW/);
+vm.runInContext('renderImpulse({...impulseFixture,events:[{...revalidatedWarning,validation:{...revalidatedWarning.validation,sourceAt:Date.now()-20000}}]},true)',context);
+assert.match(document.getElementById('impulseStatus').textContent,/LIVE/,'overall feed can be fresh');
+assert.match(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/DATA STALE/,'the coin must still be marked stale');
+vm.runInContext("renderImpulse({...impulseFixture,connected:false,error:'offline',events:[revalidatedWarning]},true)",context);
+assert.match(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/UNVERIFIED/);
+vm.runInContext('renderImpulse({...impulseFixture,events:[{...revalidatedWarning,at:Date.now()-601000}]},true)',context);
+assert.ok(document.getElementById('impulseAlerts').querySelector('details'));
+assert.match(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/EXPIRED/);
+
+const openedHistory=document.getElementById('impulseHistory');openedHistory.open=true;
+vm.runInContext('renderImpulse({...impulseFixture,events:[{...revalidatedWarning,at:Date.now()-601000}]},true)',context);
+assert.equal(document.getElementById('impulseHistory').open,true,'refresh must preserve an expanded history');
+vm.runInContext('renderImpulse({...impulseFixture,events:[revalidatedWarning]},true)',context);
+const ageTick=intervals.find(x=>x.ms===1000&&String(x.fn).includes('impulseUiEnabled'));assert.ok(ageTick);
+const delayedNow=Date.now()+20000;context.Date=class extends Date{static now(){return delayedNow}};ageTick.fn();
+assert.match(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/DATA STALE/,'freshness must age while a network request is pending');context.Date=Date;
+
+for(const sourceAt of [0,null,undefined]){context.missingPrice={...context.revalidatedWarning,validation:{status:'STALE',sourceAt,price:null,checkedAt:Date.now()}};vm.runInContext('renderImpulse({...impulseFixture,events:[missingPrice]},true)',context);const card=document.getElementById('impulseAlerts');assert.match(card.querySelector('[data-impulse-diagnostic] strong').textContent,/WAITING FOR FRESH PRICE/);assert.match(card.textContent,/Coin source age: unavailable/);assert.doesNotMatch(card.textContent,/Coin source age: \d+s/)}
+context.futureCheck={...context.revalidatedWarning,validation:{...context.revalidatedWarning.validation,sourceAt:Date.now(),checkedAt:Date.now()+5000}};vm.runInContext('renderImpulse({...impulseFixture,events:[futureCheck]},true)',context);assert.match(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/UNVERIFIED/);
+
+context.downWarning={...context.revalidatedWarning,symbol:'JCTUSD',side:-1,level:.005659,validation:{status:'HOLDING',price:.005585,sourceAt:Date.now(),checkedAt:Date.now(),reason:'Fresh price is below the original breakdown level; this is not a new entry confirmation'}};
+vm.runInContext('renderImpulse({...impulseFixture,events:[downWarning]},true)',context);assert.match(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/HOLDING BREAKDOWN NOW · JCTUSD/);assert.doesNotMatch(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/BREAKOUT/);
+vm.runInContext('renderImpulse({...impulseFixture,events:[{...revalidatedWarning,validation:{...revalidatedWarning.validation,sourceAt:Date.now(),checkedAt:Date.now()}}]},true)',context);assert.match(document.getElementById('impulseAlerts').querySelector('[data-impulse-diagnostic] strong').textContent,/HOLDING BREAKOUT NOW/);
+
+const planNow=Date.now(),planHour=Math.floor(planNow/3600000)*3600000;
+context.readyFixture={symbol:'BTCUSD',confirmed:true,valid:true,side:1,entry:100,stop:99,target:102,level:99.8,closedAt:planHour,checkedAt:planNow,checks:Array.from({length:4},()=>({ok:true})),guard:{passed:true,barEnd:Math.floor(planNow/300000)*300000}};
+context.planJob={exchange:'delta',quote:'USD',phase:'done',rows:[context.readyFixture]};context.planQuote={price:100.1,sourceAt:planNow};
+vm.runInContext('surgeState={job:planJob,settings:{enabled:true,earlyEnabled:true}};renderImpulse({...impulseFixture,prices:{BTCUSD:planQuote},events:[]},true)',context);
+assert.match(document.getElementById('impulseAlerts').querySelector('strong').textContent,/ENTRY READY · LONG BTCUSD/);assert.match(document.getElementById('impulseAlerts').textContent,/Entry \$100.*Stop \$99.*Target \$102/);assert.ok(document.querySelector('[data-simple-trade="BTCUSD"]'));
+let openedPlan=null;const actualOpen=context.openSurgePlan;context.openSurgePlan=async a=>{openedPlan=a};document.querySelector('[data-simple-trade="BTCUSD"]').click();await new Promise(r=>setImmediate(r));assert.equal(openedPlan.symbol,'BTCUSD');assert.equal(openedPlan.plan.entry,100);
+openedPlan=null;vm.runInContext('impulseView.prices.BTCUSD.sourceAt=Date.now()-20000',context);document.querySelector('[data-simple-trade="BTCUSD"]').click();await new Promise(r=>setImmediate(r));assert.equal(openedPlan,null,'stale plan cannot open from an old ready button');assert.equal(document.querySelector('[data-simple-trade="BTCUSD"]'),null);context.openSurgePlan=actualOpen;
+vm.runInContext('surgeState={settings:{enabled:true},job:null};renderImpulse({...impulseFixture,events:[revalidatedWarning]},true)',context);assert.match(document.getElementById('impulseAlerts').querySelector('strong').textContent,/WATCH/);assert.ok(document.getElementById('impulseAlerts').querySelector('details'));

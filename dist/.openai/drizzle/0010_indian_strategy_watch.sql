@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS indian_watch (
+ owner TEXT PRIMARY KEY,
+ payload TEXT NOT NULL,
+ busy_until INTEGER NOT NULL DEFAULT 0
+);

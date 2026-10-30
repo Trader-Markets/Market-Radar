@@ -25,3 +25,10 @@ alert.kind='confirmed';assert.equal((await call(alert)).accepted,true);reset();a
 fail=true;let failed=await call({...alert,key:'failed'});assert.equal(failed.status,502);assert(failed.error.includes('63016'));reset();fail=false;timeout=true;assert((await call({...alert,key:'unknown'})).error.includes('unknown'));reset();timeout=false;assert.equal((await call({...alert,key:'unknown'})).skipped,true);
 assert.equal((await call({action:'pause'})).enabled,false);assert.equal((await call({...alert,key:'paused'})).skipped,true);
 console.log('PASS WhatsApp: owner/CSRF, encrypted durable config, consent, approved-template payload, deduplication, freshness, provider failures, unknown outcomes and pause; no real messages sent');
+
+// Read an existing message status without generating another message.
+const msg='SM'+'c'.repeat(32);sql.prepare('INSERT INTO whatsapp_events(id,owner,status,created_at,provider_sid) VALUES(?,?,?,?,?)').run('delivery-uat','owner','accepted',Date.now()+10000,msg);let deliveryState='queued',getCount=0;
+ctx.fetch=async(url,o)=>{getCount++;assert.equal(o.method,'GET');assert.match(url,new RegExp(msg));return Response.json({sid:msg,account_sid:config.sid,to:'whatsapp:'+config.to,status:deliveryState})};
+const delivery=()=>ctx.handler(new Request('https://radar.test/api/whatsapp?delivery=latest',{headers:{'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@example.test'}}),env);
+assert.equal((await(await delivery()).json()).delivery.delivered,false);deliveryState='sent';assert.equal((await(await delivery()).json()).delivery.delivered,false);deliveryState='delivered';assert.equal((await(await delivery()).json()).delivery.delivered,true);deliveryState='undelivered';assert.equal((await(await delivery()).json()).delivery.delivered,false);assert.equal(getCount,4);
+console.log('PASS WhatsApp GET-only delivery checks distinguish queued/sent, delivered and undelivered without sending a new message');

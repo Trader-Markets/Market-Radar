@@ -1,0 +1,16 @@
+# Scanner recovery fixes — build51, 29 October 2026
+
+Scope: audit and repair the latest Live volume & big move / per-coin freshness flows. No assertion that every historical product issue or live broker execution is fixed.
+
+Reproduced and fixed:
+1. Stream reconnect could reuse a coin's pre-reconnect source observation after the new socket opened. Every new socket now clears per-symbol live price/source state. An update from another coin cannot restore HOLDING for the old coin; that exact symbol must receive a new fresh update.
+2. Revalidation previously read price from the last history candle but timestamp from the stream. A REST backfill could therefore change the price under an unrelated source time. Revalidation now reads a paired price+timestamp exclusively from the same accepted streamed message. Closed REST candles are authoritative during baseline backfill; an older partial stream candle no longer overwrites them. Current cumulative volume still rejects regressing updates.
+3. Socket watchdog lived behind awaited metadata/baseline requests; a slow or failing download could delay recovery. Watchdog now runs before the independently busy-guarded download tick, with existing backoff and stop/generation checks.
+4. Invalid/null/non-array saved history could break restore. Restore now skips malformed records and never trusts saved transient validation labels.
+5. History expanded by the customer collapsed on the next render. Its expanded state now survives refresh. A new regression check caught an explicit-state handling issue, which was corrected before release.
+6. Freshness labels only aged when a response/stream callback rendered. A local one-second UI tick now ages the saved snapshot even while a network request is pending. A failed connection cannot leave a previous holding card valid.
+7. The local collector computed a full UI status for every received event even with no UI callback. It now skips that unused work. Browser UI notifications are coalesced to at most four per second; candle processing, dedup and warning/history generation still run for every accepted event. This is a rendering improvement, not a measured end-to-end latency guarantee.
+
+The existing 15second per-coin freshness gate, 10minute original-warning expiry, persistent retirement after observed range re-entry, selected scan schedules and paused settings remain. No new market feeds, orders, keys, recipients, risk changes, messaging actions or sharing changes.
+
+Verification:161full-suite automated checks passed,0failed,0skipped; targeted21checks also passed. New cases exercise damaged restore, reconnect with a different coin receiving first, a REST forming price different from the timestamped stream price, watchdog while baseline request remains pending, preserved expanded history and stale-card aging during delayed responses. Existing actual isolated localhostHTTP, Worker asset/owner gates and scanner tests pass. Browser QA confirms the dedicated tab and current-check / unavailable-data presentation; account APIs remain deliberately disabled in preview. Customer machine and live account execution remain unverified. Existing UAT/provider/cloud collector limitations remain.

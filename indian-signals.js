@@ -7,11 +7,11 @@ function equitySignals(h,f,d,quote){
  const avg=a=>a.reduce((s,x)=>s+x,0)/a.length;
  const ema=(a,n)=>{if(a.length<n+20)return null;let e=avg(a.slice(0,n).map(c=>c.close));for(const c of a.slice(n))e+=(c.close-e)*2/(n+1);return e};
  const fullHour=b=>equityBarEnd(b.time,'60')-b.time===3600000;
- const c=h.at(-1),p=h.slice(0,-1).filter(fullHour).slice(-20),fc=f.at(-1),ready=!!c&&fullHour(c)&&p.length===20;
+ const hours=h.filter(fullHour),c=hours.at(-1),p=hours.slice(0,-1).slice(-20),fc=f.at(-1),ready=!!c&&p.length===20,shortened=h.length-hours.length;
  const high=ready?Math.max(...p.map(x=>x.high)):null,low=ready?Math.min(...p.map(x=>x.low)):null;
  const up=ready&&c.close>high,down=ready&&c.close<low,side=up?1:down?-1:0,level=up?high:down?low:null;
  const base=ready?avg(p.map(x=>x.volume)):0,volume=base>0?c.volume/base:null;
- const live=ready&&Date.now()-c.time<=7200000&&quote.valid&&(side===1?quote.price>level:side===-1&&quote.price<level);
+ const laterValid=!c||h.filter(b=>b.time>c.time).every(b=>side===1?b.close>level:side===-1?b.close<level:true);const live=ready&&c.time<=Date.now()&&Date.now()-c.time<=7200000&&quote.valid&&laterValid&&(side===1?quote.price>level:side===-1&&quote.price<level);
  const span=ready?c.high-c.low:0,edge=span>0&&(side===1?(c.close-c.low)/span>=.75:(c.high-c.close)/span>=.75);
  const sweptHigh=ready&&c.high>high&&c.close<=high,sweptLow=ready&&c.low<low&&c.close>=low;
  const breakout=side&&volume>=2&&edge&&Math.abs(c.close/level-1)<=.01&&!sweptHigh&&!sweptLow&&live;
@@ -20,10 +20,10 @@ function equitySignals(h,f,d,quote){
  const ma=(a,n)=>a.length>=n?avg(a.slice(-n).map(x=>x.close)):null,fast=ma(f,50),slow=ma(f,200),oldFast=ma(f.slice(0,-1),50),oldSlow=ma(f.slice(0,-1),200);
  const gold=oldSlow!==null&&oldFast<=oldSlow&&fast>slow,death=oldSlow!==null&&oldFast>=oldSlow&&fast<slow;
  return [
-  {strategy:'1H volume breakout',status:!ready?'Unavailable':breakout?'Confirmed':'Watch',reason:!ready?'Needs 21 closed full 1H candles; shortened session-close bars are excluded':volume===null?'No traded volume: index volume confirmation unavailable':!quote.valid?'Live quote stale, missing or market closed':`Volume ${volume.toFixed(2)}×; closed range ${low}–${high}`,side,level,candleAt:c?.time??null},
-  {strategy:'4H 200 EMA consolidation',status:e===null?'Unavailable':consolidation?'Watch':'No setup',reason:e===null?'Needs at least 220 closed 4H candles':'Consolidation is a watch, not a confirmed breakout',level:e},
-  {strategy:'Golden / death cross',status:oldSlow===null?'Unavailable':gold||death?'Watch':'No setup',reason:oldSlow===null?'Needs at least 201 closed 4H candles to compare current and previous averages':gold?'50 SMA crossed above 200 SMA':death?'50 SMA crossed below 200 SMA':'Latest closed 4H 50/200 SMA comparison'},
-  {strategy:'Liquidity sweep',status:!ready?'Unavailable':sweptHigh||sweptLow?'Detected':'Not detected',reason:!ready?'Needs 21 closed full 1H candles; shortened session-close bars are excluded':sweptHigh?'High swept; closed back inside range':sweptLow?'Low swept; closed back inside range':'Separate candle-pattern check; does not prove stop orders'},
+  {strategy:'1H volume breakout',status:!ready?'Unavailable':breakout?'Confirmed':side?'Watch':'No setup',reason:!ready?`Needs 21 closed full 1H candles; received ${hours.length}. Shortened session-close bars are excluded`:`Volume ${volume===null?'unavailable':volume.toFixed(2)+'×'}; closed range ${low}–${high}; ${!quote.valid?'quote stale / missing / market closed':!laterValid?'a later session candle closed back through the level':live?'live price holds the broken level':'no valid live breakout'}; ${shortened} shortened candles excluded`,side,level,candleAt:c?.time??null},
+  {strategy:'4H 200 EMA consolidation',status:e===null?'Unavailable':consolidation?'Watch':'No setup',reason:e===null?'Needs at least 220 closed 4H candles':'Consolidation is a watch, not a confirmed breakout',level:e,candleAt:fc?.time??null},
+  {strategy:'Golden / death cross',status:oldSlow===null?'Unavailable':gold||death?'Watch':'No setup',reason:oldSlow===null?'Needs at least 201 closed 4H candles to compare current and previous averages':gold?'50 SMA crossed above 200 SMA':death?'50 SMA crossed below 200 SMA':'Latest closed 4H 50/200 SMA comparison',candleAt:fc?.time??null},
+  {strategy:'Liquidity sweep',status:!ready?'Unavailable':sweptHigh||sweptLow?'Detected':'Not detected',reason:!ready?'Needs 21 closed full 1H candles; shortened session-close bars are excluded':sweptHigh?'High swept; closed back inside range':sweptLow?'Low swept; closed back inside range':'Separate candle-pattern check; does not prove stop orders',candleAt:c?.time??null},
   {strategy:'Multi-timeframe / ATH',status:'Unavailable',reason:'Lifetime ATH and full monthly alignment are not verified by this scan. No confirmation issued.'}
  ];
 }

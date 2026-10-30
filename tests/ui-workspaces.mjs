@@ -51,3 +51,6 @@ console.log('PASS assembled workspace navigation/deep links, unique controls, of
 const damaged=fixture('',{radarAlerts:'[null,{}, {"title":"Saved alert"}]',radarSeenAlerts:'{}'});assert.match(damaged.document.querySelector('#alertRows').textContent,/Saved alert/);
 
 const japaHome=fixture().document.querySelector('[data-asset=japa]');assert.equal(japaHome.getAttribute('href'),'/naam-japa');assert.equal(japaHome.target,'_blank');assert.match(japaHome.rel,/noopener/);
+
+const tabs=fixture('#stocks');tabs.document.querySelector('[data-stock-tab="indices"]').click();assert.equal(tabs.document.querySelector('[data-asset="indices"]').getAttribute('aria-pressed'),'true');assert.equal(tabs.document.querySelector('[data-asset="stocks"]').getAttribute('aria-pressed'),'false');tabs.document.querySelector('[data-stock-tab="ai"]').click();assert.equal(tabs.document.querySelector('[data-asset="stocks"]').getAttribute('aria-pressed'),'true');assert.equal(tabs.document.querySelectorAll('.asset-nav [aria-pressed=true]').length,1);
+console.log('PASS UAT inner global tabs keep the workspace highlight consistent');

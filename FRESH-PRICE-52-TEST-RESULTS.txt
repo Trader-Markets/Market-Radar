@@ -1,0 +1,256 @@
+PASS background: private service gate, owner settings, same-origin writes, unattended public-source scan, durable results and minute dedup; no messages sent
+✔ tests/background.mjs (294.61726ms)
+PASS: broker value, margin, risk calculation, leverage and stop validation
+✔ tests/broker-ticket.mjs (151.672555ms)
+PASS custom alerts: exact text parsing, literal price, AND/OR, EMA calculation, fresh quotes, gaps/stale/forming data, partial OR evidence, both exchanges, durable save/history, one-shot, idempotent retry, pause/rearm/delete, owner/CSRF isolation, bounded checks, concurrency and no exchange/provider writes
+✔ tests/custom-alerts.mjs (1714.182182ms)
+PASS customer flow: confirmations, price/account freshness, symbol isolation, draft edits and accepted-order clearing
+✔ tests/customer-flow.mjs (117.984572ms)
+PASS customer page: complete startup, one chart/ticket, settings relocation, chart picking, navigation and empty-plan order guard
+PASS asynchronous feature paths: disconnect races, candle merging, malformed live feed and stale/changed review guards
+PASS connection recovery: initial failure retries, recovery succeeds, explicit disconnect stops; WhatsApp controls mount
+PASS Shark recovery, immediate stale account invalidation and untimed market quote rejection
+PASS actual demo button -> durable route -> displayed position -> cleared draft, without exchange requests
+PASS optional history failures and amount/leverage review invalidation
+PASS cancelled order reviews ignore late responses; stopped scans release controls; incomplete checks remain unverified
+PASS strategy confirmation is separate from failed, pending, stale and expired entry checks
+PASS title-only alerts and active tracking on Trade and My Positions
+PASS prominent bold volume alerts in scanner and main alert feed
+PASS separate sweep panel, chart guard status and delayed-confirmation explanation mount in the customer page
+PASS customer custom-alert flow: exact typed preview, actual Save form, durable trigger, main feed, bold toast, dismiss and re-arm control; no provider or exchange writes
+PASS direct trade ticks, source timestamps, stale/out-of-order rejection, streamed order book and cancelled stream isolation
+PASS activity tab start, pause, source connection status, warmup and outage handling; isolated network only
+PASS activity start remains disabled while enabled, restores after pause/failure, and exposes retry for failed jobs
+PASS simple EMA volume scanner: exact location, closed signal, fresh holding price, unavailable history, stop race and original strategy restoration
+PASS Early Rally evidence UI: sourced review, escaping, dirty form preservation, revision conflict and unavailable-state clearing
+✔ tests/customer-page.mjs (868.588112ms)
+PASS customer release: instrument and scan races, damaged alerts, duplicate refresh, late settings replies and transport-delayed quote rejection
+✔ tests/customer-release.mjs (411.232913ms)
+PASS automatic personal review, factual language, currency reuse, pre-fill chart cutoff, exact fills, saved risk evidence, later-candle toggle, zoom, stale-response isolation and failure recovery
+PASS invalid deep-review bodies/rows preserve retry controls and never enter the evidence summary
+✔ tests/deep-review-page.mjs (329.075267ms)
+PASS closed-candle/no-hindsight checks, gaps/duplicates, EMA warmup, directional post-path, saved paginated reviews, recorded risk plans, same-account provenance, size-after-loss, owner/CSRF isolation and provider retry; no exchange writes
+✔ tests/deep-review.mjs (289.141073ms)
+PASS: owner/CSRF, encrypted sessions, exact HMAC, reviewed orders, duplicate prevention, IP/permission diagnostics and disconnect
+PASS server quote gate: missing, stale and future timestamps blocked; microsecond timestamps normalized
+PASS Delta: crossed stop and malformed positions block order preparation
+✔ tests/delta-desk.mjs (215.086782ms)
+PASS fixed-IP route authentication, replay/stale protection, route allowlist, no secret forwarding, server-only configuration and unchanged direct mode
+✔ tests/delta-relay.mjs (196.354ms)
+PASS demo: long/short, funds, fees, P&L, margin, close, gaps, stale quotes, dedup, concurrency, owner isolation and restart persistence; public quotes only; no exchange order requests
+✔ tests/demo-account.mjs (255.17513ms)
+✔ Dhan connection is profile-verified, encrypted, durable and never returns the token (47.224243ms)
+✔ Dhan rejects cross-owner/CSRF/invalid inputs and blocks all order mutations (5.923973ms)
+✔ Dhan directory uses official detailed headers and exact security IDs; NSE universe excludes funds/bonds (14.634878ms)
+✔ Dhan snapshots send grouped IDs and preserve provider source times; missing/stale time cannot confirm (10.19955ms)
+✔ Dhan account reads isolate failed endpoints and display real account arrays/fund fields (11.298267ms)
+✔ Dhan handles token expiry, Data API entitlement, provider cooldown and non-JSON 429 distinctly (32.253534ms)
+✔ Dhan requests are paced without overlapping, and unsupported broker endpoints cannot be called (11.148281ms)
+✔ Dhan candle arrays reject malformed data and 4H aggregation respects Indian sessions, gaps and forming groups (3.603934ms)
+✔ Dhan scan uses 3 bounded 1H chunks plus daily data, filters forming candles and remains unconfirmed without evidence (10.4451ms)
+✔ retired broker migration removes only its saved connection and leaves crypto and Dhan records intact (0.739576ms)
+✔ audit: index OHLC values survive quote normalization and absent fields remain unknown (1.682237ms)
+✔ audit: malformed account records cannot be rendered as a zero-position account (5.536719ms)
+✔ audit: expired-token and missing-plan scans stop after the first provider failure (13.499496ms)
+✔ audit: stale saved stock does not break quotes for other valid stocks in the same batch (4.177239ms)
+✔ audit: Retry-After date is respected even with an unreadable provider body (5.018717ms)
+✔ audit: boolean candles are rejected and history excludes bars outside its requested range (2.323163ms)
+✔ audit: supported quote aliases return the exact canonical stock/index instead of null rows (5.410729ms)
+✔ directory follows Dhan public signed-download redirects without sending account credentials (1.2005ms)
+✔ directory rejects foreign hosts, insecure URLs, wrong bucket/segment and redirect loops (5.081322ms)
+✔ failed directory download has an actionable message and can recover on the next request (1.294993ms)
+✔ read-only account server failures get one retry, preserve working sections and permit a section-only retry (21.477555ms)
+✔ account authentication failure stops remaining account calls without deleting the saved session (6.97293ms)
+✔ data entitlement codes take precedence over HTTP 401 and retain a safe reason (14.784323ms)
+✔ preflight checks real data reads, rejects inactive plans and preserves saved credentials (12.882266ms)
+✔ account responses keep independent successful section fetch times (5.766755ms)
+✔ crossovers require both current and previous 200 SMA values (1.39261ms)
+✔ shortened 15:15 session candle cannot confirm a full 1H volume breakout (1.381352ms)
+✔ scan exposes backend candle coverage and withholds confirmation after a partial provider failure (9.321015ms)
+✔ last full hourly candle survives a shortened session bar, while a later rejection or stale quote prevents confirmation (1.559711ms)
+✔ full Dhan scan pipeline calculates coverage from provider candle arrays instead of placeholder results (57.3187ms)
+PASS full NSE screener: 122-stock universe beyond old caps, SME, pagination/search, bounded quotes, sequential pacing, independent failures, quota pause/retry, checkpoint restore, in-flight cancellation, navigation, exact chart/plan handoff and saved-list compatibility; no orders
+✔ tests/dhan-screener-page.mjs (5226.586064ms)
+✔ qualification needs sourced current owner review and all technical gates; no probability (3.034545ms)
+✔ missing, expired or unconfirmed fundamentals cannot qualify (1.638991ms)
+✔ crowding, liquidation spikes and sourced fundamental risk are avoid flags (0.449218ms)
+✔ stale/future checks, paused runner and failed scanner cannot qualify (0.461596ms)
+✔ OI must rise; weak liquidity, no retest and excess spread stay watch (1.72469ms)
+✔ separate retest must follow compact range breakout and hold afterwards (0.903622ms)
+✔ review source validation rejects credentials and unsupported identities (0.539594ms)
+✔ owner route persists review with revision guard; other owner and CSRF cannot read/write it (63.622395ms)
+✔ qualified history is durable, deduplicated, and disabled for paused or risk-reviewed checks (1.241952ms)
+✔ new closed upside 200 EMA cross with 3x volume matches (3.861723ms)
+✔ ordinary volume, already above EMA and downward crossing fail (5.480554ms)
+✔ forming candles cannot manufacture a cross or volume (1.245428ms)
+✔ missing, stale, short and invalid history is unavailable (6.357757ms)
+✔ zero volume baseline is unavailable rather than infinite surge (2.839712ms)
+PASS fakeout and separate sweep gates: long/short follow-through, weak bodies, wick rejection, recovery after failed break, no forming/future proof, gaps/duplicates/stale history, tick buffer, server entry recheck, chase/expiry, and tracked-trade sweep/failed-close alerts; no orders or messages
+✔ tests/fakeouts.mjs (101.458773ms)
+✔ forming price/volume warning has no derivatives, retest or fundamentals dependency (1.581955ms)
+✔ downside impulse works and weak volume, weak close, small move, inside range and zero baseline do not warn (0.819646ms)
+✔ stale/future/out-of-order candles, bad OHLC and gaps cannot fabricate a warning (0.422177ms)
+✔ actual HYPE 16:00–16:05 IST traded candle replays: 4.12% and 121.46x volume (0.646214ms)
+✔ stream seeds baseline, subscribes real traded candles, warns once and respects pause and late messages (35.895826ms)
+✔ no baseline means no alert; pause during baseline fetch prevents late qualification (1.477488ms)
+✔ socket reconnects without duplicate warning and stale messages never alert (1.715167ms)
+✔ restored saved warnings suppress replay after local restart (7.259116ms)
+✔ lightweight status route preserves owner access and never accepts a client signal (43.717822ms)
+✔ per-coin revalidation requires that exact coin fresh, even if overall feed is live (0.25193ms)
+✔ re-entry invalidates upside and downside references; stale prices cannot establish invalidation (0.130086ms)
+✔ expired, paused, disconnected and missing references never show holding (0.217629ms)
+✔ observed invalidation retires warning and persists across restart; subsequent rebound cannot revive it (2.666731ms)
+✔ saved holding status is not trusted after restart without a fresh symbol price (0.94156ms)
+✔ damaged saved history cannot break startup or inject invalid records (0.39091ms)
+✔ reconnect requires a new observation for each warning coin, even after another coin resumes (1.638771ms)
+✔ REST forming candle cannot borrow the timestamp of a different streamed price (0.65669ms)
+✔ watchdog still reconnects while a baseline download is pending (0.655709ms)
+✔ missing or zero coin timestamps never become a 1970 source age (0.187933ms)
+✔ audit journey: Dhan account refresh has a sufficient deadline and renders account/position fields (60.718948ms)
+✔ audit journey: shorthand alerts resolve, deduplicate and trigger once from a fresh Dhan quote (20.674785ms)
+✔ audit journey: navigation discards a pending alert lookup without adding a hidden rule (18.015716ms)
+✔ audit journey: directory reload locks scope and scan until complete; failed reload retains the usable universe (162.126198ms)
+✔ audit journey: changing table page during quotes loads the final visible page after the current batch (99.887054ms)
+✔ account section retry preserves working positions and funds while clearing only the recovered failure (13.815542ms)
+✔ market-data access check has a 60s deadline, actionable failure and recovery (7.350313ms)
+✔ holdings retry retains the positions original fetch time (12.00335ms)
+PASS disconnected → verify Dhan credentials → save encrypted token → TradingView chart → account → expired-session reconnect; index shortcut, persistent recovery, visible version and point labels; controlled responses, no live credentials
+✔ tests/india-onboarding.mjs (338.211485ms)
+✔ direct TradingView chart owns all chart controls and native symbol search (14.688969ms)
+✔ cash symbols and index shortcuts use exact TradingView mappings (7.76541ms)
+✔ unmapped contracts are not silently replaced with a different instrument (2.956148ms)
+✔ script failure and timeout offer retry, never a custom chart fallback (2.872461ms)
+✔ iframe creation clears loading only, without claiming market-data success (3.721622ms)
+✔ expanded chart exits with Escape or navigation and restores scroll (5.411129ms)
+✔ strategy chart keeps its instrument fixed while native tools remain enabled (2.796847ms)
+✔ global workspace uses the same clean chart for NSE and global symbols (30.037133ms)
+✔ Indian stocks use Dhan only, with exact selected code and no TradingView actions (7.05644ms)
+✔ manual exact symbol updates the outside link without guessing broker contracts (3.398766ms)
+✔ Dhan chart stock search selects the exact broker symbol and passes it to strategy plans (12.017702ms)
+✔ Dhan chart search ignores late results after query/exchange changes or navigation (7.63032ms)
+✔ rejects a provider frame requesting Apple when Microsoft was selected (3.683745ms)
+✔ selected stock is copied and cleanup ignores late clipboard results (3.140255ms)
+✔ clipboard failure has a manual-copy recovery without claiming stock auto-selection (21.121719ms)
+✔ Dhan chart quote ignores late data from a previous stock and survives broker errors (31.592633ms)
+PASS Indian watch customer controls: paused default, canonical saved symbols, unsaved-edit guard, safe errors and late-response cleanup
+✔ tests/indian-watch-page.mjs (297.043233ms)
+PASS Indian durable paused-by-default watch, owner/CSRF isolation, minute due guard, title dedup, failure persistence, lock/pause races, browser-independent local timer and read-only readiness report privacy
+✔ tests/indian-watch.mjs (152.611311ms)
+✔ delta: cancelled old review failure cannot overwrite a newer successful review (67.45254ms)
+✔ shark: cancelled old review failure cannot overwrite a newer successful review (40.145971ms)
+✔ Shark INR position Chart chooses its quote market while viewing USDT (49.138105ms)
+✔ Performance: declining to discard an unsaved learning keeps the date preset unchanged (40.024433ms)
+✔ UAT first Shark connection failure never claims a saved connection exists (36.346877ms)
+PASS calendar signs and coverage, daily/duration feedback, separate currencies, saved day learning/XSS, calendar-month presets, thresholds, navigation and failure recovery
+✔ tests/learnings-page.mjs (365.518265ms)
+PASS single-action resume, saved-progress retry, safe error details and bounded request timeout
+PASS malformed performance report does not replace saved results or disable retry
+✔ tests/learnings-recovery.mjs (264.876574ms)
+PASS learning periods/IST, partial-fill grouping, currency isolation, pattern evidence, planned exclusions, resumable owner-scoped GET-only sync, deduplication and failure withholding
+PASS screenshot regression: ID-less ledger, legacy batch-10 resume, identical separate entries, retry idempotency and snapshot isolation
+PASS calendar SQL matches ledger, planned exclusions, >20,000 rows and complete 90/180/365-day window coverage
+PASS legacy long-sync migration excludes obsolete ledger and malformed fills fail before aggregation
+PASS evidence-only labels, strict intent types, spanning-hour exclusion and unassigned fee reconciliation
+PASS screenshot batch-9 row-15 regression: long import completes, invalid record retained, affected-order exclusion, wallet P&L preserved and corrected-record recovery
+✔ tests/learnings.mjs (1684.022661ms)
+PASS: live-rule limits, quantity minimum, user-selected leverage, liquidation estimate and both SMA crosses
+✔ tests/leverage-live.mjs (107.43499ms)
+✔ venue side meanings differ; use executed size and bankruptcy-price proxy (1.486972ms)
+✔ reject malformed, stale and future events (0.81547ms)
+✔ warmup and disconnection cannot mean zero liquidations (0.239992ms)
+✔ spike requires baseline, 5x expansion and absolute minimum (0.332732ms)
+✔ matching instruments required; collector does not guess unsupported symbols (0.951625ms)
+✔ subscription ACK, duplicate suppression and disconnect reset using actual collector (1.356826ms)
+✔ read-only status distinguishes stopped, subscribed, connected and disconnected without inventing feeds (0.839797ms)
+✔ disconnect reconnects without waiting for the next scanner batch; pause cancels retries (0.565172ms)
+✔ pausing during metadata lookup cannot silently reopen the collector (0.462527ms)
+✔ adding a market preserves an existing market baseline and subscription (1.388894ms)
+PASS real isolated localhost HTTP server: startup, all pages/assets, empty account recovery, saved-watchlist availability, CSRF, Host protection and withdrawal rejection; no user accounts or live messages used
+✔ tests/local-http.mjs (299.74453ms)
+PASS old server 404/version conflicts, unreachable/busy ports, current-server reuse, pre-database guard, retry launcher and button contrast
+✔ tests/local-startup.mjs (70.743157ms)
+PASS local Telegram authentication, 2FA, encrypted persistence, restore, channel isolation, edits/deletes, CSRF and disconnect
+✔ tests/local-telegram.mjs (120.22757ms)
+PASS local saved watchlist: explicit configuration, pause, minute completion, duplicate suppression, error recovery and shutdown; no live alerts sent
+✔ tests/local-watchlist.mjs (107.373137ms)
+PASS three workspace isolation, stale UI responses, local alert storage, readable tables and real-performance empty state
+PASS duplicate broker candles rejected before chart rendering, clear failed-chart state and retry recovery
+PASS shorthand symbol resolution before stock strategy and quote requests
+PASS strategy-plan stock search discards late response after exchange change
+PASS hyphenated stock shorthand resolves before strategy chart/scan
+PASS native TradingView strategy chart mounts independently, survives scanning and cleans up on navigation
+✔ tests/market-accounts-page.mjs (310.89198ms)
+PASS: five-timeframe alignment, forming/confirmed, volume thresholds, insufficient/gapped history, prior historical highs, no future leakage, strategy drawings and all-contract scan defaults
+✔ tests/multi-timeframe.mjs (165.564899ms)
+PASS devotional library: favourite dedications, scripture references vs traditional invocations, custom text, real recording embeds, no autoplay, loop configuration, browser-local library, safe URLs/text and playback isolation; no provider playback claimed
+PASS named saint presets: credited sources, satsang labels, audio repeat, no autoplay, archive error fallback, source-switch stops playback
+✔ tests/naam-japa-library.mjs (244.639208ms)
+PASS microphone recorder: explicit permission, audio only, record/stop/loop/download, format selection, replacement cleanup, cancelled grants, denial/empty/device errors, five-minute cap and page-close cleanup; no real microphone accessed
+✔ tests/naam-japa-recorder.mjs (301.329536ms)
+PASS Naam Japa: no autoplay, exact maha mantra, continuous speech repeat, pause/stop, stale-callback isolation, local recording loop, file validation, blocked playback recovery and speech-unavailable fallback; no real audio rendering
+✔ tests/naam-japa.mjs (268.077436ms)
+PASS ledger currency separation, deposits excluded, signed fees/funding, duplicate IDs, daily drawdown, invalid rows and pagination refusal
+✔ tests/performance.mjs (112.10096ms)
+PASS: target/stop ordering, gap losses, time exits, short trades, costs, risk sizing, leverage/margin caps, EMA wait state, 2R target and statistical interval
+✔ tests/planner.mjs (101.234029ms)
+PASS: both encrypted connections survive restart and cookie loss, remain owner-scoped, persist read-only mode, and disconnect removes them
+✔ tests/saved-connections.mjs (240.024139ms)
+PASS: setup alerts distinguish forming/confirmed, calculate bounded money risk, suppress duplicates and omit unverified sizing
+✔ tests/setup-alerts.mjs (90.801944ms)
+PASS layered setup checks: confirmation, expiry, quote age, spread, chase distance, stop/target, costs, tick size and independent 1H scan
+PASS staged MTF eligibility: daily download retained exactly when necessary short-timeframe gates permit a match
+✔ tests/setup-quality.mjs (96.339194ms)
+PASS: Shark owner/CSRF, encrypted session, exact signature, order with stop/target, leverage, duplicate lock, no withdrawal route
+PASS Shark: history failure preserves account data; crossed stop and missing quantity rules reject order review
+✔ tests/shark-desk.mjs (153.092766ms)
+PASS: EMA, breakout, long/short scalp; low volume, wick, distant EMA and short history rejected
+✔ tests/signals.mjs (94.051534ms)
+Stocks workspace isolation, indices, filtering, tracking, provider configuration and failure states passed
+PASS direct NSE TradingView chart, visible provider escape links and reversible unavailable-panel controls
+PASS global reference/cash source alignment, exact stock chart input and workspace cleanup
+PASS replaced panels discard stale callbacks and navigation cancels provider timers
+✔ tests/stocks.mjs (298.548412ms)
+PASS volume surge: exact top20, long/short, all four aligned closes, no early alerts, gaps, low volume, wick rejection, stale data, one alert per hourly signal, owner isolation, CSRF, pause and background status; no real messages
+✔ tests/surge-scanner.mjs (615.900869ms)
+PASS fixed read-only Telegram source, text extraction, link allowlist, unavailable preview, refresh cache and explicit stale fallback
+✔ tests/telegram-news.mjs (106.115405ms)
+PASS hosted setup discovery and guide routes, local 1s refresh, disconnected/stale/error states, safe text, URL validation and hidden-tab pause
+✔ tests/telegram-page.mjs (279.468682ms)
+PASS Telegram text/entities, UTF-16 emoji offsets, exact captions, album order, safe links, escaped content and local-only image URLs
+✔ tests/telegram-posts.mjs (224.147719ms)
+PASS trade tracking: long/short, all four strategies, stop latch, stale data, actual fills, no fill promotion, account outage, changed position, closure, durable dedup, owner isolation and private background updater; no real orders or messages
+PASS stop coverage rejects duplicate, cancelled and invalid-price records
+✔ tests/trade-monitor.mjs (529.649888ms)
+PASS: Delta and Shark positions render below chart and disconnect clears Delta
+✔ tests/trade-positions.mjs (154.229301ms)
+✔ UAT performance rejects missing settings and recovers (66.737558ms)
+✔ UAT performance rejects null wallet row and recovers (20.755287ms)
+✔ UAT performance rejects string money and recovers (16.697057ms)
+✔ UAT performance rejects duplicate day and recovers (13.977647ms)
+✔ UAT performance rejects damaged note and recovers (14.32173ms)
+✔ UAT performance rejects inconsistent net and recovers (10.851393ms)
+✔ UAT performance rejects duplicate currency and recovers (7.521832ms)
+PASS assembled workspace navigation/deep links, unique controls, offline recovery, keyboard scroll access, shared CSS parsing and text contrast; no pixel-rendering claim
+PASS UAT inner global tabs keep the workspace highlight consistent
+✔ tests/ui-workspaces.mjs (611.60746ms)
+Controlled activity scenarios use simulated candles/tickers; no retrospective IRYS detection or live prediction claim
+✔ volume, multi-frame breakout and sampled contract OI produce a review warning (21.625538ms)
+✔ rising USD OI alone is never substituted for contract OI (5.018378ms)
+✔ funding outlier is a crowding flag and retains native rate units (11.883389ms)
+✔ first run warms up instead of inventing OI change or funding history (8.974242ms)
+✔ stale/future/invalid tickers cannot create a warning (12.010276ms)
+✔ forming candles and missing latest candles cannot fabricate breakout alignment (8.745802ms)
+✔ ordinary volume does not warn even with open interest or funding extremes (2.352667ms)
+PASS WhatsApp: owner/CSRF, encrypted durable config, consent, approved-template payload, deduplication, freshness, provider failures, unknown outcomes and pause; no real messages sent
+PASS WhatsApp GET-only delivery checks distinguish queued/sent, delivered and undelivered without sending a new message
+✔ tests/whatsapp.mjs (160.283164ms)
+PASS Worker integration: exact frontend assets, cache freshness, route allowlist, both feed proxies, protected accounts, news authorization and upstream failures
+✔ tests/worker-routes.mjs (132.343609ms)
+ℹ tests 162
+ℹ suites 0
+ℹ pass 162
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5666.902347

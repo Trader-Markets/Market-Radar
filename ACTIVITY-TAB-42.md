@@ -1,0 +1,11 @@
+# Dedicated Unusual Activity tab — build 42
+
+Setups → Unusual activity now separates early warnings and evidence from final Top 20 hourly confirmations. It reuses the existing Top 20 scanner; it is not a second independent universe or strategy engine.
+
+Start continuous scan enables unusual activity and starts the selected Delta market scanner in one journey. Pause unusual activity disables that feature and immediately stops the local public-feed collector without pausing the shared final-confirmation scanner. Check connections refreshes authenticated server status. Visible status refreshes every 15 seconds while the page is open. No Binance/Bybit account login, API key, credential storage or settings form is required: these are public feeds.
+
+Read-only collector status reports subscription count, actual subscription-acknowledged transport health, last received timestamp and remaining baseline warm-up. Disconnected, unsupported or hosted-only states are not represented as connected. Heartbeats establish transport health, not proof of event completeness. Owner-only access and same-origin writes are preserved. Late scan work rechecks saved feature flags before requesting liquidation collection.
+
+Local terminal runner advances bounded scan batches every 2 seconds, re-evaluating completed candle data on new 5-minute slots. The liquidation WebSockets remain open between checks. Local server must stay running and computer awake; browser may close. Hosted-only site still has no always-on collector. No DigitalOcean resources were provisioned. Shark derivatives remain unsupported. Existing WhatsApp and confirmed-entry rules stay unchanged.
+
+Verification: 126 full-suite automated checks passed; after final controls/pause changes 17 targeted checks passed, including DOM start/pause/status/outage journeys, seven mutually exclusive setup sections, backend status owner gate, immediate collector pause, source health/warmup and prior activity tests. Tests use controlled providers and isolated storage. Browser preview verified tab/controls and honest API-unavailable state. Prior public live-event receipt remains unverified. See LIQUIDATIONS-41.md for collection thresholds and coverage limitations. No customer positions, orders, risk settings, keys or recipients changed.

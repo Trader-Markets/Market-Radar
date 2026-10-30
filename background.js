@@ -27,10 +27,10 @@ async function backgroundRoute(request,env){
  if(!service){if(!Array.isArray(b.watchlist)||b.watchlist.length<1||b.watchlist.length>8||b.watchlist.some(t=>!['delta','shark'].includes(t.exchange)||!/^([A-Z0-9]{2,30})(USD|USDT|INR)$/.test(t.symbol)||t.exchange==='delta'&&!t.symbol.endsWith('USD')))throw Error('Enter 1–8 valid exchange symbols.');let unique=[...new Map(b.watchlist.map(t=>[t.exchange+':'+t.symbol,{exchange:t.exchange,symbol:t.symbol}])).values()];await save('settings',{enabled:b.enabled===true,watchlist:unique});return json({saved:true})}
  if(typeof monitorServiceRoute==='function')await monitorServiceRoute(new Request(u.origin+'/api/trade-monitor/run',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({deliver:b.deliver===true})}),env);
  if(!settings.enabled)return json({skipped:true,reason:'Background scans are paused'});
- const now=Date.now(),slot=Math.floor(now/3600000),previous=await read('last');
+ const now=Date.now(),slot=Math.floor(now/60000),previous=await read('last');
  if(previous?.slot===slot&&previous.completedAt)return json({...previous,alreadyScanned:true});
  let claim=await q('INSERT OR IGNORE INTO background_scans(id,payload,updated_at) VALUES(?,?,?)','lock:'+slot,'{}',now).run();
- if(claim.meta.changes!==1)return json({skipped:true,reason:'This hourly scan is running or was interrupted. The next hour retries.'});
+ if(claim.meta.changes!==1)return json({skipped:true,reason:'This minute scan is running or was interrupted. The next minute retries.'});
  let result={slot,startedAt:now,completedAt:null,scope:settings.watchlist,results:[],filtered:[],errors:[],delivery:'No new qualifying alerts',news:'News risk unverified; review current news before trading.'};
  for(let t of settings.watchlist){try{
   let h=await backgroundCandles(t.exchange,t.symbol,'1h',75),f=await backgroundCandles(t.exchange,t.symbol,'4h',330),d=[];
@@ -43,7 +43,7 @@ async function backgroundRoute(request,env){
  if(b.deliver===true){const saved=await env.DB.prepare('SELECT * FROM whatsapp_settings WHERE enabled = 1').bind().all();
   for(let setting of saved.results??[]){const matches=result.results.filter(x=>x.confirmed||setting.forming);if(!matches.length)continue;
    let key='background:'+matches.map(x=>[x.exchange,x.symbol,x.mode,x.signalAt,!!x.confirmed].join(':')).sort().join('|');
-   const hash=hex(await crypto.subtle.digest('SHA-256',enc.encode(key)));let message=matches.map(x=>`${x.exchange} ${x.symbol} ${x.mode}: ${x.confirmed?'confirmed':'forming — wait for close'}, entry ${x.entry}, stop ${x.stop}, target ${x.target}`).join('; ').slice(0,1300)+'. Hourly candle scan, not a live entry instruction. Check fresh price, spread and news.';
+   const hash=hex(await crypto.subtle.digest('SHA-256',enc.encode(key)));let message=matches.map(x=>`${x.exchange} ${x.symbol} ${x.mode}: ${x.confirmed?'confirmed':'forming — wait for close'}, entry ${x.entry}, stop ${x.stop}, target ${x.target}`).join('; ').slice(0,1300)+'. Minute check using closed candles, not a live entry instruction. Check fresh price, spread and news.';
    let response=await whatsappBackground(env,setting.owner,{action:'alert',key:'background:'+hash,title:(matches[0].symbol+' '+(matches[0].side===1?'Long':'Short')+' · '+matches[0].mode+' · '+(matches[0].confirmed?'Confirmed — review entry':'Forming — wait for close')+(matches.length>1?' · +'+(matches.length-1)+' setups':'')).slice(0,150),message,kind:matches.some(x=>x.confirmed)?'confirmed':'forming',at:Date.now()},u.origin);let status=await response.json();result.delivery=status.note??status.reason??status.error??'Skipped';
   }
  }else result.delivery='Delivery not requested for this run';

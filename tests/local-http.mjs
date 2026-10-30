@@ -11,10 +11,20 @@ try{
  await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Local server startup timeout')),12000);child.once('exit',code=>{clearTimeout(timer);reject(Error('Local server exited '+code))});child.stdout.on('data',chunk=>{if(String(chunk).includes('Market Radar is running')){clearTimeout(timer);resolve()}})});
  const call=(path,options={})=>new Promise((resolve,reject)=>{const request=http.request({hostname:'127.0.0.1',port,path,method:options.method||'GET',headers:{host:'localhost:'+port,...options.headers}},response=>{const chunks=[];response.on('data',chunk=>chunks.push(chunk));response.on('end',()=>resolve(new Response(Buffer.concat(chunks),{status:response.statusCode,headers:response.headers})))});request.on('error',reject);request.setTimeout(5000,()=>request.destroy(Error('HTTP test timeout')));request.end(options.body)});
  for(const path of ['/','/learnings','/naam-japa','/telegram-connect','/stocks.js','/deep-review.js']){const r=await call(path);assert.equal(r.status,200,path);assert.ok((await r.text()).length>500,path)}
+ const rally=await (await call('/api/early-rally')).json();assert.deepEqual(rally.rows,[]);assert.equal(rally.fundamentalsMode,'owner-reviewed');
  const version=await (await call('/api/local-version')).json();assert.equal(version.telegramSetup,true);
  const tg=await (await call('/api/local-telegram')).json();assert.equal(tg.state,'disconnected');
  const background=await (await call('/api/background')).json();assert.equal(background.configured,false);assert.equal(background.serviceAvailable,true);
  for(const path of ['/api/delta-desk/account','/api/shark-desk/account','/api/dhan/account']){const r=await call(path);assert.ok([400,401].includes(r.status),path);assert.equal(typeof (await r.json()).error,'string')}
+ // Real HTTP -> owner middleware -> Worker routes -> isolated SQLite, with no broker credentials.
+ for(const path of ['/api/demo','/api/custom-alerts','/api/trade-monitor','/api/surge','/api/whatsapp','/api/dhan/status','/api/indian-watch']){const r=await call(path);assert.equal(r.status,200,path);assert.equal(typeof await r.json(),'object',path)}
+ const demoBefore=await(await call('/api/demo')).json();
+ const synced=await call('/api/demo',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({action:'sync',version:demoBefore.version})});assert.equal(synced.status,200);const state=await synced.json();assert.deepEqual(state.state.positions,[]);
+ const demoAfter=await(await call('/api/demo')).json();assert.deepEqual(demoAfter.state,state.state);
+ const {DatabaseSync}=await import('node:sqlite');const db=new DatabaseSync(directory+'/accounts.sqlite',{readOnly:true});assert.equal(db.prepare('SELECT COUNT(*) AS n FROM demo_accounts WHERE owner = ?').get('local-owner').n,1,'real HTTP action wrote the owner-scoped SQLite record');db.close();
+ const badJson=await call('/api/demo',{method:'POST',headers:{origin,'content-type':'application/json'},body:'{'});assert.equal(badJson.status,400);assert.match((await badJson.json()).error,/Invalid JSON/);
+ assert.equal((await call('/api/demo',{method:'POST',headers:{origin:'https://untrusted.test','content-type':'application/json'},body:'{"action":"sync"}'})).status,403);
+ assert.equal((await call('/api/dhan/account',{method:'POST',headers:{origin,'content-type':'application/json'},body:'{}'})).status,404);
  const rejected=await call('/api/dhan/setup',{method:'POST',headers:{origin:'https://untrusted.test','content-type':'application/json'},body:'{}'});assert.equal(rejected.status,403);
  assert.equal((await call('/api/local-version',{headers:{host:'evil.test'}})).status,421);
  assert.equal((await call('/api/delta/v2/wallet/withdraw',{method:'POST',headers:{origin,'content-type':'application/json'},body:'{}'})).status,405);
